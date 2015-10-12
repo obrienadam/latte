@@ -3,7 +3,7 @@
 import sys
 from PyQt4 import QtGui, QtCore
 from ui.main_window import Ui_MainWindow
-import Solvers
+import solvers
 from grid.finite_difference import FdGrid2D
 
 class Ui(Ui_MainWindow):
@@ -18,7 +18,7 @@ class Ui(Ui_MainWindow):
 
     def setupBindings(self):
         """
-        Bind widgets
+        Bind the buttons to the apropriate function calls
         :return:
         """
         self.run_btn.clicked.connect(self.run)
