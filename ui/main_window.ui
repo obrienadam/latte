@@ -24,6 +24,13 @@
           <property name="fieldGrowthPolicy">
            <enum>QFormLayout::AllNonFixedFieldsGrow</enum>
           </property>
+          <item row="0" column="0">
+           <widget class="QLabel" name="solver_label">
+            <property name="text">
+             <string>Solver</string>
+            </property>
+           </widget>
+          </item>
           <item row="0" column="1">
            <widget class="QComboBox" name="solver_combo_box">
             <item>
@@ -36,26 +43,17 @@
               <string>Piso</string>
              </property>
             </item>
-           </widget>
-          </item>
-          <item row="0" column="0">
-           <widget class="QLabel" name="solver_label">
-            <property name="text">
-             <string>Solver</string>
-            </property>
+            <item>
+             <property name="text">
+              <string>Poisson</string>
+             </property>
+            </item>
            </widget>
           </item>
           <item row="1" column="0">
            <widget class="QLabel" name="density_label">
             <property name="text">
              <string>Density</string>
-            </property>
-           </widget>
-          </item>
-          <item row="2" column="0">
-           <widget class="QLabel" name="viscosity_label">
-            <property name="text">
-             <string>Viscosity</string>
             </property>
            </widget>
           </item>
@@ -72,6 +70,13 @@
             </property>
            </widget>
           </item>
+          <item row="2" column="0">
+           <widget class="QLabel" name="viscosity_label">
+            <property name="text">
+             <string>Viscosity</string>
+            </property>
+           </widget>
+          </item>
           <item row="2" column="1">
            <widget class="QDoubleSpinBox" name="viscosity_spin_box">
             <property name="decimals">
@@ -85,8 +90,26 @@
             </property>
            </widget>
           </item>
-          <item row="3" column="1">
-           <layout class="QHBoxLayout" name="horizontalLayout_4">
+         </layout>
+        </item>
+        <item>
+         <widget class="Line" name="line_2">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <layout class="QFormLayout" name="formLayout_2">
+          <item row="2" column="0">
+           <widget class="QLabel" name="mesh_label">
+            <property name="text">
+             <string>Mesh File</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="1">
+           <layout class="QHBoxLayout" name="horizontalLayout_3">
             <item>
              <widget class="QLineEdit" name="mesh_line_edit"/>
             </item>
@@ -99,12 +122,245 @@
             </item>
            </layout>
           </item>
-          <item row="3" column="0">
-           <widget class="QLabel" name="mesh_label">
+          <item row="0" column="0">
+           <widget class="QLabel" name="mesh_resolution_label">
             <property name="text">
-             <string>Mesh File</string>
+             <string>Mesh Resolution</string>
             </property>
            </widget>
+          </item>
+          <item row="0" column="1">
+           <layout class="QHBoxLayout" name="horizontalLayout_4">
+            <item>
+             <widget class="QSpinBox" name="mesh_xresolution_spin_box">
+              <property name="accelerated">
+               <bool>true</bool>
+              </property>
+              <property name="minimum">
+               <number>1</number>
+              </property>
+              <property name="maximum">
+               <number>10000</number>
+              </property>
+              <property name="value">
+               <number>11</number>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QSpinBox" name="mesh_yresolution_spin_box">
+              <property name="accelerated">
+               <bool>true</bool>
+              </property>
+              <property name="minimum">
+               <number>1</number>
+              </property>
+              <property name="maximum">
+               <number>10000</number>
+              </property>
+              <property name="value">
+               <number>11</number>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="mesh_dimensions_label">
+            <property name="text">
+             <string>Mesh Dimensions</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <layout class="QHBoxLayout" name="horizontalLayout_5">
+            <item>
+             <widget class="QDoubleSpinBox" name="mesh_xdimensions_spin_box">
+              <property name="accelerated">
+               <bool>true</bool>
+              </property>
+              <property name="decimals">
+               <number>4</number>
+              </property>
+              <property name="singleStep">
+               <double>0.100000000000000</double>
+              </property>
+              <property name="value">
+               <double>1.000000000000000</double>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QDoubleSpinBox" name="mesh_ydimensions_spin_box">
+              <property name="accelerated">
+               <bool>true</bool>
+              </property>
+              <property name="decimals">
+               <number>4</number>
+              </property>
+              <property name="minimum">
+               <double>0.000000000000000</double>
+              </property>
+              <property name="singleStep">
+               <double>0.100000000000000</double>
+              </property>
+              <property name="value">
+               <double>1.000000000000000</double>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <widget class="Line" name="line_3">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <layout class="QFormLayout" name="formLayout_3">
+          <item row="0" column="0">
+           <widget class="QLabel" name="east_boundary_label">
+            <property name="text">
+             <string>East Boundary</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <layout class="QHBoxLayout" name="horizontalLayout_6">
+            <item>
+             <widget class="QComboBox" name="east_boundary_combo_box">
+              <item>
+               <property name="text">
+                <string>Fixed</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>Normal Gradient</string>
+               </property>
+              </item>
+             </widget>
+            </item>
+            <item>
+             <widget class="QDoubleSpinBox" name="east_boundary_spin_box">
+              <property name="decimals">
+               <number>4</number>
+              </property>
+              <property name="singleStep">
+               <double>0.100000000000000</double>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="west_boundary_label">
+            <property name="text">
+             <string>West Boundary</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <layout class="QHBoxLayout" name="horizontalLayout_7">
+            <item>
+             <widget class="QComboBox" name="west_boundary_combo_box">
+              <item>
+               <property name="text">
+                <string>Fixed</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>Normal Gradient</string>
+               </property>
+              </item>
+             </widget>
+            </item>
+            <item>
+             <widget class="QDoubleSpinBox" name="west_boundary_spin_box">
+              <property name="decimals">
+               <number>4</number>
+              </property>
+              <property name="singleStep">
+               <double>0.100000000000000</double>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item row="2" column="0">
+           <widget class="QLabel" name="north_boundary_label">
+            <property name="text">
+             <string>North Boundary</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="1">
+           <layout class="QHBoxLayout" name="horizontalLayout_8">
+            <item>
+             <widget class="QComboBox" name="north_boundary_combo_box">
+              <item>
+               <property name="text">
+                <string>Fixed</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>Normal Gradient</string>
+               </property>
+              </item>
+             </widget>
+            </item>
+            <item>
+             <widget class="QDoubleSpinBox" name="north_boundary_spin_box">
+              <property name="decimals">
+               <number>4</number>
+              </property>
+              <property name="singleStep">
+               <double>0.100000000000000</double>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item row="3" column="0">
+           <widget class="QLabel" name="south_boundary_label">
+            <property name="text">
+             <string>South Boundary</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="1">
+           <layout class="QHBoxLayout" name="horizontalLayout_9">
+            <item>
+             <widget class="QComboBox" name="south_boundary_combo_box">
+              <item>
+               <property name="text">
+                <string>Fixed</string>
+               </property>
+              </item>
+              <item>
+               <property name="text">
+                <string>Normal Gradient</string>
+               </property>
+              </item>
+             </widget>
+            </item>
+            <item>
+             <widget class="QDoubleSpinBox" name="south_boundary_spin_box">
+              <property name="decimals">
+               <number>4</number>
+              </property>
+              <property name="singleStep">
+               <double>0.100000000000000</double>
+              </property>
+             </widget>
+            </item>
+           </layout>
           </item>
          </layout>
         </item>
@@ -178,11 +434,26 @@
      <x>0</x>
      <y>0</y>
      <width>800</width>
-     <height>21</height>
+     <height>27</height>
     </rect>
    </property>
+   <widget class="QMenu" name="menuFile">
+    <property name="title">
+     <string>File</string>
+    </property>
+    <addaction name="actionOpen"/>
+   </widget>
+   <addaction name="menuFile"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
+  <action name="actionOpen">
+   <property name="text">
+    <string>Open</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+O</string>
+   </property>
+  </action>
  </widget>
  <resources/>
  <connections/>

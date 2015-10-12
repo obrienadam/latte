@@ -3,6 +3,8 @@
 import sys
 from PyQt4 import QtGui, QtCore
 from ui.main_window import Ui_MainWindow
+import Solvers
+from grid.finite_difference import FdGrid2D
 
 class Ui(Ui_MainWindow):
     def __init__(self):
@@ -24,11 +26,19 @@ class Ui(Ui_MainWindow):
 
     def run(self):
         solver_type = str(self.solver_combo_box.currentText())
-        density = self.density_spin_box.value()
-        mesh_file_name = self.mesh_line_edit.text()
-        self.run_progress_bar.setValue(self.run_progress_bar.value() + 25)
+        shape = self.mesh_xresolution_spin_box.value(), self.mesh_yresolution_spin_box.value()
+        dimensions = self.mesh_xdimensions_spin_box.value(), self.mesh_ydimensions_spin_box.value()
 
-        print 'Opening mesh {}'.format(mesh_file_name)
+        grid = FdGrid2D(shape, dimensions)
+
+        boundaries = {'East': {'type': str(self.east_boundary_combo_box.currentText()), 'refval': self.east_boundary_spin_box.value()},
+                      'West': {'type': str(self.west_boundary_combo_box.currentText()), 'refval': self.west_boundary_spin_box.value()},
+                      'North': {'type': str(self.north_boundary_combo_box.currentText()), 'refval': self.north_boundary_spin_box.value()},
+                      'South': {'type': str(self.south_boundary_combo_box.currentText()), 'refval': self.south_boundary_spin_box.value()}}
+
+        grid.boundaries = boundaries
+
+        print grid.boundaries
 
     def browse_open_file(self):
         file_name = QtGui.QFileDialog.getOpenFileName(QtGui.QFileDialog())
