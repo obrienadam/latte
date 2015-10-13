@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'main_window.ui'
 #
-# Created: Sun Oct 11 19:54:53 2015
+# Created: Tue Oct 13 12:54:47 2015
 #      by: PyQt4 UI code generator 4.10.1
 #
 # WARNING! All changes made in this file will be lost!
@@ -65,6 +65,32 @@ class Ui_MainWindow(object):
         self.viscosity_spin_box.setProperty("value", 0.1)
         self.viscosity_spin_box.setObjectName(_fromUtf8("viscosity_spin_box"))
         self.formLayout.setWidget(2, QtGui.QFormLayout.FieldRole, self.viscosity_spin_box)
+        self.max_iters_label = QtGui.QLabel(self.centralwidget)
+        self.max_iters_label.setObjectName(_fromUtf8("max_iters_label"))
+        self.formLayout.setWidget(3, QtGui.QFormLayout.LabelRole, self.max_iters_label)
+        self.max_iters_spin_box = QtGui.QSpinBox(self.centralwidget)
+        self.max_iters_spin_box.setAccelerated(True)
+        self.max_iters_spin_box.setSuffix(_fromUtf8(""))
+        self.max_iters_spin_box.setMinimum(1)
+        self.max_iters_spin_box.setMaximum(999999)
+        self.max_iters_spin_box.setObjectName(_fromUtf8("max_iters_spin_box"))
+        self.formLayout.setWidget(3, QtGui.QFormLayout.FieldRole, self.max_iters_spin_box)
+        self.unsteady_label = QtGui.QLabel(self.centralwidget)
+        self.unsteady_label.setObjectName(_fromUtf8("unsteady_label"))
+        self.formLayout.setWidget(4, QtGui.QFormLayout.LabelRole, self.unsteady_label)
+        self.horizontalLayout_10 = QtGui.QHBoxLayout()
+        self.horizontalLayout_10.setObjectName(_fromUtf8("horizontalLayout_10"))
+        self.unsteady_on_radio_btn = QtGui.QRadioButton(self.centralwidget)
+        self.unsteady_on_radio_btn.setChecked(False)
+        self.unsteady_on_radio_btn.setObjectName(_fromUtf8("unsteady_on_radio_btn"))
+        self.horizontalLayout_10.addWidget(self.unsteady_on_radio_btn)
+        self.unsteady_off_radio_btn = QtGui.QRadioButton(self.centralwidget)
+        self.unsteady_off_radio_btn.setChecked(True)
+        self.unsteady_off_radio_btn.setObjectName(_fromUtf8("unsteady_off_radio_btn"))
+        self.horizontalLayout_10.addWidget(self.unsteady_off_radio_btn)
+        spacerItem = QtGui.QSpacerItem(40, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
+        self.horizontalLayout_10.addItem(spacerItem)
+        self.formLayout.setLayout(4, QtGui.QFormLayout.FieldRole, self.horizontalLayout_10)
         self.verticalLayout.addLayout(self.formLayout)
         self.line_2 = QtGui.QFrame(self.centralwidget)
         self.line_2.setFrameShape(QtGui.QFrame.HLine)
@@ -199,8 +225,6 @@ class Ui_MainWindow(object):
         self.horizontalLayout_9.addWidget(self.south_boundary_spin_box)
         self.formLayout_3.setLayout(3, QtGui.QFormLayout.FieldRole, self.horizontalLayout_9)
         self.verticalLayout.addLayout(self.formLayout_3)
-        spacerItem = QtGui.QSpacerItem(40, 20, QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Minimum)
-        self.verticalLayout.addItem(spacerItem)
         self.run_btn = QtGui.QPushButton(self.centralwidget)
         self.run_btn.setObjectName(_fromUtf8("run_btn"))
         self.verticalLayout.addWidget(self.run_btn)
@@ -255,6 +279,10 @@ class Ui_MainWindow(object):
         self.solver_combo_box.setItemText(2, _translate("MainWindow", "Poisson", None))
         self.density_label.setText(_translate("MainWindow", "Density", None))
         self.viscosity_label.setText(_translate("MainWindow", "Viscosity", None))
+        self.max_iters_label.setText(_translate("MainWindow", "Max. Iterations", None))
+        self.unsteady_label.setText(_translate("MainWindow", "Unsteady", None))
+        self.unsteady_on_radio_btn.setText(_translate("MainWindow", "On", None))
+        self.unsteady_off_radio_btn.setText(_translate("MainWindow", "Off", None))
         self.mesh_label.setText(_translate("MainWindow", "Mesh File", None))
         self.browse_btn.setText(_translate("MainWindow", "Browse", None))
         self.mesh_resolution_label.setText(_translate("MainWindow", "Mesh Resolution", None))

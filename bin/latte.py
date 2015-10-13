@@ -39,7 +39,14 @@ class Latte(QtGui.QApplication, Ui_MainWindow):
                       'North': {'type': str(self.north_boundary_combo_box.currentText()), 'refval': self.north_boundary_spin_box.value()},
                       'South': {'type': str(self.south_boundary_combo_box.currentText()), 'refval': self.south_boundary_spin_box.value()}}
 
-        poisson = Poisson(grid)
+        solver_input = {'solver_type': str(self.solver_combo_box.currentText()),
+                        'max_iters': self.max_iters_spin_box.value(),
+                        'time_accurate': self.unsteady_on_radio_btn.isChecked()}
+
+        print 'Solver input'
+        print solver_input
+
+        poisson = Poisson(grid, **solver_input)
         poisson.solve(self.run_progress_bar)
         self.run_progress_bar.setValue(0)
 
