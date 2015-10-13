@@ -3,18 +3,21 @@
 import sys
 from PyQt4 import QtGui, QtCore
 from ui.main_window import Ui_MainWindow
-import solvers
-from grid.finite_difference import FdGrid2D
+from grid.finite_volume import FvGrid2D
+from solvers.poisson import Poisson
 
-class Ui(Ui_MainWindow):
-    def __init__(self):
+class Latte(QtGui.QApplication, Ui_MainWindow):
+    def __init__(self, args):
         """
         Initialize the GUI
-        :return:
+        :return: The Latte appication object
         """
+        QtGui.QApplication.__init__(self, args)
         self.main_window = QtGui.QMainWindow()
         self.setupUi(self.main_window)
         self.setupBindings()
+        self.main_window.show()
+        print 'Latte finished with exit code {}'.format(self.exec_())
 
     def setupBindings(self):
         """
@@ -29,23 +32,20 @@ class Ui(Ui_MainWindow):
         shape = self.mesh_xresolution_spin_box.value(), self.mesh_yresolution_spin_box.value()
         dimensions = self.mesh_xdimensions_spin_box.value(), self.mesh_ydimensions_spin_box.value()
 
-        grid = FdGrid2D(shape, dimensions)
+        grid = FvGrid2D(shape, dimensions)
 
         boundaries = {'East': {'type': str(self.east_boundary_combo_box.currentText()), 'refval': self.east_boundary_spin_box.value()},
                       'West': {'type': str(self.west_boundary_combo_box.currentText()), 'refval': self.west_boundary_spin_box.value()},
                       'North': {'type': str(self.north_boundary_combo_box.currentText()), 'refval': self.north_boundary_spin_box.value()},
                       'South': {'type': str(self.south_boundary_combo_box.currentText()), 'refval': self.south_boundary_spin_box.value()}}
 
-        grid.boundaries = boundaries
-
-        print grid.boundaries
+        poisson = Poisson(grid)
+        poisson.solve(self.run_progress_bar)
+        self.run_progress_bar.setValue(0)
 
     def browse_open_file(self):
         file_name = QtGui.QFileDialog.getOpenFileName(QtGui.QFileDialog())
         self.mesh_line_edit.setText(file_name)
 
 if __name__ == '__main__':
-    app = QtGui.QApplication(sys.argv)
-    ui = Ui()
-    ui.main_window.show()
-    sys.exit(app.exec_())
+    app = Latte(sys.argv)
