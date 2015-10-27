@@ -48,11 +48,32 @@ class FvGrid2D(FdGrid2D):
             field['vface_data'] = np.zeros(self.vface_shape) if kwargs.get('vface_centered', False) else None
 
             if field['cell_data'] != None:
-                cell_field = field['cell_data']
-                self.boundary_fields[field_name] = {'east': cell_field[-1, :],
-                                                    'west': cell_field[0, :],
-                                                    'north': cell_field[:, -1],
-                                                    'south': cell_field[:, 0]}
+                cell_data = field['cell_data']
+                field['boundary_data'] = {'east': {'type': 'fixed', 'refval': 0., 'bfield': cell_data[-1, :]},
+                                            'west': {'type': 'fixed', 'refval': 0., 'bfield': cell_data[0, :]},
+                                            'north': {'type': 'fixed', 'refval': 0., 'bfield': cell_data[:, -1]},
+                                            'south': {'type': 'fixed', 'refval': 0., 'bfield': cell_data[:, 0]}}
+
+    def cell_data(self, *args):
+        """
+        :param args: Names of fields
+        :return: A tuple containing the cell data of the desired fields
+        """
+        return tuple([self.fields[field_name]['cell_data'] for field_name in args])
+
+    def node_data(self, *args):
+        """
+        :param args: Names of fields
+        :return: A tuple containing the node data of the desired fields
+        """
+        return tuple([self.fields[field_name]['node_data'] for field_name in args])
+
+    def face_data(self, args):
+        """
+        :param args: Names of fields
+        :return: A tuple containing tuples with the horizontal and vertical face data of the desired fields
+        """
+        return tuple([(self.fields[field_name]['hface_data'], self.fields[field_name]['vface_data']) for field_name in args])
 
     def cell_center(self, index):
         """
@@ -81,14 +102,8 @@ class FvGrid2D(FdGrid2D):
                      'p', color='blue', markersize=3)
 
 if __name__ == '__main__':
-    collocated_grid = FvGrid2D((41, 41), (1.3, 1))
-    collocated_grid.add_fields('u', 'v', 'p', 'pCorr', 'm', cell_centered=True, face_centered=True)
-    collocated_grid.add_fields('u0', 'v0', cell_centered=True)
-
-    staggered_grid = FvGrid2D((51, 51), (1, 1))
-    staggered_grid.add_fields('u', cell_centered=True, vface_centered=True)
-    staggered_grid.add_fields('v', cell_centered=True, hface_centered=True)
-    staggered_grid.add_fields('p', 'pCorr', 'm', cell_centered=True, face_centered=True)
-
-    collocated_grid.plot(mark_nodes=True, mark_cell_centers=True, mark_faces=True)
-    collocated_grid.plot_show()
+    grid = FvGrid2D((21, 21), (1, 1))
+    grid.add_fields('u', 'v', 'p', 'pCorr', 'm', 'phi', cell_centered=True, face_centered=True)
+    grid.add_fields('')
+    grid.plot(mark_nodes=True, mark_cell_centers=True, mark_faces=True)
+    grid.plot_show()

@@ -34,6 +34,13 @@ class FdGrid2D(object):
                                                 'north': field[:, -1],
                                                 'south': field[:, 0]}
 
+    def node_data(self, *args):
+        """
+        :param args: Names of fields
+        :return: A tuple containing the node data of the desired fields
+        """
+        return tuple([self.fields[field_name] for field_name in args])
+
     def get_field_names(self):
         """
         :return: A list of the field names

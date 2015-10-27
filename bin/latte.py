@@ -4,7 +4,7 @@ import sys
 from PyQt4 import QtGui, QtCore
 from ui.main_window import Ui_MainWindow
 from grid.finite_volume import FvGrid2D
-from solvers.poisson import Poisson
+from solvers.simple import Simple
 
 class Latte(QtGui.QApplication, Ui_MainWindow):
     def __init__(self, args):
@@ -41,14 +41,21 @@ class Latte(QtGui.QApplication, Ui_MainWindow):
 
         solver_input = {'solver_type': str(self.solver_combo_box.currentText()),
                         'max_iters': self.max_iters_spin_box.value(),
-                        'time_accurate': self.unsteady_on_radio_btn.isChecked()}
+                        'time_accurate': self.unsteady_on_radio_btn.isChecked(),
+                        'rho': self.density_spin_box.value(),
+                        'mu': self.viscosity_spin_box.value()}
 
         print 'Solver input'
         print solver_input
 
-        poisson = Poisson(grid, **solver_input)
-        poisson.solve(self.run_progress_bar)
-        self.run_progress_bar.setValue(0)
+        solver_type = self.solver_combo_box.currentText()
+
+        if solver_type == 'Simple':
+            solver = Simple(grid, **solver_input)
+        elif solver_type == 'Piso':
+            raise NotImplementedError
+
+        solver.solve(self.run_progress_bar)
 
     def browse_open_file(self):
         file_name = QtGui.QFileDialog.getOpenFileName(QtGui.QFileDialog())
