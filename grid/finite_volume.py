@@ -20,9 +20,23 @@ class FvGrid2D(FdGrid2D):
         xcdims = [xdim + 0.5*deltax for xdim, deltax in zip(xdims, deltaxs)]
         ycdims = [ydim + 0.5*deltay for ydim, deltay in zip(ydims, deltays)]
 
-        self.x_cell_centers, self.y_cell_centers = np.meshgrid(xcdims, ycdims, indexing='ij')
-        self.x_hface_centers, self.y_hface_centers = np.meshgrid(xcdims, ydims, indexing='ij')
-        self.x_vface_centers, self.y_vface_centers = np.meshgrid(xdims, ycdims, indexing='ij')
+        self.cell_centers_x, self.cell_centers_y = np.meshgrid(xcdims, ycdims, indexing='ij')
+        self.hface_centers_x, self.hface_centers_y = np.meshgrid(xcdims, ydims, indexing='ij')
+        self.vface_centers_x, self.vface_centers_y = np.meshgrid(xdims, ycdims, indexing='ij')
+
+        self.rcell_h_x = np.diff(self.cell_centers_x, axis=0)
+        self.rcell_h_y = np.diff(self.cell_centers_y, axis=0)
+        self.rcell_v_x = np.diff(self.cell_centers_x, axis=1)
+        self.rcell_v_y = np.diff(self.cell_centers_y, axis=1)
+
+        self.rface_east_x = self.vface_centers_x[1:, :] - self.cell_centers_x
+        self.rface_east_y = self.vface_centers_y[1:, :] - self.cell_centers_y
+
+        self.rface_west_x = self.vface_centers_x[0:-1, :] - self.cell_centers_x
+        self.rface_west_y = self.vface_centers_y[0:-1, :] - self.cell_centers_y
+
+        self.rface_north_x = self.hface_centers_x[:, 1:] - self.cell_centers_x
+        self.rface_north_y = self.hface_centers_y[:, 0:-1] - self.cell_centers_y
 
         self.cell_shape = len(xcdims), len(ycdims)
         self.hface_shape = len(xcdims), len(ydims)
@@ -68,37 +82,37 @@ class FvGrid2D(FdGrid2D):
         """
         return tuple([self.fields[field_name]['node_data'] for field_name in args])
 
-    def face_data(self, args):
+    def face_data(self, field_name):
         """
         :param args: Names of fields
         :return: A tuple containing tuples with the horizontal and vertical face data of the desired fields
         """
-        return tuple([(self.fields[field_name]['hface_data'], self.fields[field_name]['vface_data']) for field_name in args])
+        return self.fields[field_name]['hface_data'], self.fields[field_name]['vface_data']
 
     def cell_center(self, index):
         """
         :param index: The (i, j) index of the cell
         :return: A tuple containing the coordinates of the cell center
         """
-        return self.x_cell_centers[index], self.y_cell_centers[index]
+        return self.cell_centers_x[index], self.cell_centers_y[index]
 
     def cell_centers(self):
         """
         :return: A tuple containing all the coordinates of the cell centers
         """
-        return self.x_cell_centers, self.y_cell_centers
+        return self.cell_centers_x, self.cell_centers_y
 
     def plot(self, **kwargs):
         super(FvGrid2D, self).plot(**kwargs)
 
         if kwargs.get('mark_cell_centers', False):
-            plt.plot(self.x_cell_centers, self.y_cell_centers,
+            plt.plot(self.cell_centers_x, self.cell_centers_y,
                      'o', color='red', markersize=3)
 
         if kwargs.get('mark_faces', False):
-            plt.plot(self.x_hface_centers, self.y_hface_centers,
+            plt.plot(self.hface_centers_x, self.hface_centers_y,
                      'p', color='blue', markersize=3)
-            plt.plot(self.x_vface_centers, self.y_vface_centers,
+            plt.plot(self.vface_centers_x, self.vface_centers_y,
                      'p', color='blue', markersize=3)
 
 if __name__ == '__main__':
