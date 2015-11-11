@@ -20,10 +20,12 @@ class FvGrid2D(FdGrid2D):
         xcdims = [xdim + 0.5*deltax for xdim, deltax in zip(xdims, deltaxs)]
         ycdims = [ydim + 0.5*deltay for ydim, deltay in zip(ydims, deltays)]
 
+        # Compute cell and face centroids
         self.cell_centers_x, self.cell_centers_y = np.meshgrid(xcdims, ycdims, indexing='ij')
         self.hface_centers_x, self.hface_centers_y = np.meshgrid(xcdims, ydims, indexing='ij')
         self.vface_centers_x, self.vface_centers_y = np.meshgrid(xdims, ycdims, indexing='ij')
 
+        # Compute cell and face relative displacements
         self.rcell_h_x = np.diff(self.cell_centers_x, axis=0)
         self.rcell_h_y = np.diff(self.cell_centers_y, axis=0)
         self.rcell_v_x = np.diff(self.cell_centers_x, axis=1)
@@ -36,7 +38,19 @@ class FvGrid2D(FdGrid2D):
         self.rface_west_y = self.vface_centers_y[0:-1, :] - self.cell_centers_y
 
         self.rface_north_x = self.hface_centers_x[:, 1:] - self.cell_centers_x
-        self.rface_north_y = self.hface_centers_y[:, 0:-1] - self.cell_centers_y
+        self.rface_north_y = self.hface_centers_y[:, 1:] - self.cell_centers_y
+
+        self.rface_south_x = self.hface_centers_x[:, 0:-1] - self.cell_centers_x
+        self.rface_south_y = self.hface_centers_y[:, 0:-1] - self.cell_centers_y
+
+        # Compute the face parameters
+        self.hface_norms_x = np.diff(self.ynodes, axis=0)
+        self.hface_norms_y = -np.diff(self.xnodes, axis=0)
+
+        self.vface_norms_x = np.diff(self.ynodes, axis=1)
+        self.vface_norms_y = -np.diff(self.xnodes, axis=1)
+
+        # Compute diffusion metrics
 
         self.cell_shape = len(xcdims), len(ycdims)
         self.hface_shape = len(xcdims), len(ydims)
