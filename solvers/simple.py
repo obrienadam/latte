@@ -32,7 +32,14 @@ def compute_momentum(grid):
     :param grid: The computational grid
     :return:
     """
+    sfe = grid.east_face_norms()
+    sfw = grid.west_face_norms()
+    sfn = grid.north_face_norms()
+    sfs = grid.south_face_norms()
+
     u, v, p = grid.cell_data('u', 'v', 'p')
+
+
 
 def correct_continuity(grid):
     """

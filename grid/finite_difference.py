@@ -47,12 +47,13 @@ class FdGrid2D(object):
         """
         return self.fields.keys()
 
-    def node(self, index):
+    def node(self, i, j):
         """
-        :param index: The (i, j) index of the node
-        :return: A tuple containing the coordinates of the node
+        :param i: Index i
+        :param j: Index j
+        :return: A tuple containing the x, y coordinate of the node
         """
-        return self.xnodes[index], self.ynodes[index]
+        return self.xnodes[i, j], self.ynodes[i, j]
 
     def nodes(self):
         """

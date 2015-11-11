@@ -103,12 +103,61 @@ class FvGrid2D(FdGrid2D):
         """
         return self.fields[field_name]['hface_data'], self.fields[field_name]['vface_data']
 
-    def cell_center(self, index):
+    def xc(self, i, j):
         """
-        :param index: The (i, j) index of the cell
-        :return: A tuple containing the coordinates of the cell center
+        :param i: Index i
+        :param j: Index j
+        :return: Tuple containing the x, y coordinate of the cell center
         """
-        return self.cell_centers_x[index], self.cell_centers_y[index]
+        return self.cell_centers_x[i, j], self.cell_centers_y[i, j]
+
+    def sfe(self, i, j):
+        """
+        Get the east face normal at cell i, j
+        :param i: Index i
+        :param j: Index j
+        :return: Tuple containing x, y components of the outward normal
+        """
+        return self.vface_norms_x[i + 1, j], self.vface_norms_x[i + 1, j]
+
+    def sfw(self, i, j):
+        """
+        Get the west face normal at cell i, j
+        :param i: Index i
+        :param j: Index j
+        :return: Tuple containing x, y components of the outward normal
+        """
+        return -self.vface_norms_x[i, j], -self.vface_norms_x[i, j]
+
+    def sfn(self, i, j):
+        """
+        Get the north face normal at cell i, j
+        :param i: Index i
+        :param j: Index j
+        :return: Tuple containing x, y components of the outward normal
+        """
+        return self.hface_norms_x[i, j + 1], self.vface_norms_y[i, j + 1]
+
+    def sfs(self, i, j):
+        """
+        Get the south face normal at cell i, j
+        :param i: Index i
+        :param j: Index j
+        :return: Tuple containing x, y components of the outward normal
+        """
+        return -self.hface_norms_x[i, j], -self.hface_norms_x[i, j]
+
+    def east_face_norms(self):
+        return np.array([zip(xvals, yvals) for xvals, yvals in zip(self.vface_norms_x[1:, :], self.vface_norms_y[1:, :])])
+
+    def west_face_norms(self):
+        return [zip(xvals, yvals) for xvals, yvals in zip(-self.vface_norms_x[:-1, :], -self.vface_norms_y[:-1, :])]
+
+    def north_face_norms(self):
+        return [zip(xvals, yvals) for xvals, yvals in zip(self.hface_norms_x[:, 1:], self.hface_norms_y[:, 1:])]
+
+    def south_face_norms(self):
+        return [zip(xvals, yvals) for xvals, yvals in zip(-self.hface_norms_x[:, :-1], -self.hface_norms_y[:, :-1])]
 
     def cell_centers(self):
         """
@@ -132,6 +181,9 @@ class FvGrid2D(FdGrid2D):
 if __name__ == '__main__':
     grid = FvGrid2D((21, 21), (1, 1))
     grid.add_fields('u', 'v', 'p', 'pCorr', 'm', 'phi', cell_centered=True, face_centered=True)
-    grid.add_fields('')
+
+    sfe = grid.east_face_norms()
+    sfw = grid.west_face_norms()
+
     grid.plot(mark_nodes=True, mark_cell_centers=True, mark_faces=True)
     grid.plot_show()
