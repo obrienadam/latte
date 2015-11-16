@@ -1,6 +1,4 @@
 import numpy as np
-import matplotlib
-matplotlib.use('QT4Agg')
 import matplotlib.pyplot as plt
 
 class FdGrid2D(object):

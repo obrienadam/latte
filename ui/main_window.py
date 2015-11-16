@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'main_window.ui'
 #
-# Created: Tue Oct 27 15:00:52 2015
+# Created: Thu Nov 12 11:30:36 2015
 #      by: PyQt4 UI code generator 4.10.1
 #
 # WARNING! All changes made in this file will be lost!
@@ -26,7 +26,7 @@ except AttributeError:
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName(_fromUtf8("MainWindow"))
-        MainWindow.resize(800, 620)
+        MainWindow.resize(800, 655)
         self.centralwidget = QtGui.QWidget(MainWindow)
         self.centralwidget.setObjectName(_fromUtf8("centralwidget"))
         self.horizontalLayout_2 = QtGui.QHBoxLayout(self.centralwidget)
@@ -51,7 +51,8 @@ class Ui_MainWindow(object):
         self.formLayout.setWidget(1, QtGui.QFormLayout.LabelRole, self.density_label)
         self.density_spin_box = QtGui.QDoubleSpinBox(self.centralwidget)
         self.density_spin_box.setAccelerated(True)
-        self.density_spin_box.setDecimals(4)
+        self.density_spin_box.setDecimals(15)
+        self.density_spin_box.setMaximum(9999999.0)
         self.density_spin_box.setSingleStep(0.1)
         self.density_spin_box.setProperty("value", 1.0)
         self.density_spin_box.setObjectName(_fromUtf8("density_spin_box"))
@@ -61,7 +62,8 @@ class Ui_MainWindow(object):
         self.formLayout.setWidget(2, QtGui.QFormLayout.LabelRole, self.viscosity_label)
         self.viscosity_spin_box = QtGui.QDoubleSpinBox(self.centralwidget)
         self.viscosity_spin_box.setAccelerated(True)
-        self.viscosity_spin_box.setDecimals(4)
+        self.viscosity_spin_box.setDecimals(15)
+        self.viscosity_spin_box.setMaximum(9999999.0)
         self.viscosity_spin_box.setSingleStep(0.1)
         self.viscosity_spin_box.setProperty("value", 0.1)
         self.viscosity_spin_box.setObjectName(_fromUtf8("viscosity_spin_box"))
@@ -139,14 +141,14 @@ class Ui_MainWindow(object):
         self.horizontalLayout_5.setObjectName(_fromUtf8("horizontalLayout_5"))
         self.mesh_xdimensions_spin_box = QtGui.QDoubleSpinBox(self.centralwidget)
         self.mesh_xdimensions_spin_box.setAccelerated(True)
-        self.mesh_xdimensions_spin_box.setDecimals(4)
+        self.mesh_xdimensions_spin_box.setDecimals(6)
         self.mesh_xdimensions_spin_box.setSingleStep(0.1)
         self.mesh_xdimensions_spin_box.setProperty("value", 1.0)
         self.mesh_xdimensions_spin_box.setObjectName(_fromUtf8("mesh_xdimensions_spin_box"))
         self.horizontalLayout_5.addWidget(self.mesh_xdimensions_spin_box)
         self.mesh_ydimensions_spin_box = QtGui.QDoubleSpinBox(self.centralwidget)
         self.mesh_ydimensions_spin_box.setAccelerated(True)
-        self.mesh_ydimensions_spin_box.setDecimals(4)
+        self.mesh_ydimensions_spin_box.setDecimals(6)
         self.mesh_ydimensions_spin_box.setMinimum(0.0)
         self.mesh_ydimensions_spin_box.setSingleStep(0.1)
         self.mesh_ydimensions_spin_box.setProperty("value", 1.0)
@@ -284,6 +286,27 @@ class Ui_MainWindow(object):
         self.south_boundary_combo_box.setCurrentIndex(2)
         self.Tab.setCurrentIndex(0)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
+        MainWindow.setTabOrder(self.solver_combo_box, self.density_spin_box)
+        MainWindow.setTabOrder(self.density_spin_box, self.viscosity_spin_box)
+        MainWindow.setTabOrder(self.viscosity_spin_box, self.max_iters_spin_box)
+        MainWindow.setTabOrder(self.max_iters_spin_box, self.unsteady_on_radio_btn)
+        MainWindow.setTabOrder(self.unsteady_on_radio_btn, self.unsteady_off_radio_btn)
+        MainWindow.setTabOrder(self.unsteady_off_radio_btn, self.mesh_xresolution_spin_box)
+        MainWindow.setTabOrder(self.mesh_xresolution_spin_box, self.mesh_yresolution_spin_box)
+        MainWindow.setTabOrder(self.mesh_yresolution_spin_box, self.mesh_xdimensions_spin_box)
+        MainWindow.setTabOrder(self.mesh_xdimensions_spin_box, self.mesh_ydimensions_spin_box)
+        MainWindow.setTabOrder(self.mesh_ydimensions_spin_box, self.mesh_line_edit)
+        MainWindow.setTabOrder(self.mesh_line_edit, self.browse_btn)
+        MainWindow.setTabOrder(self.browse_btn, self.east_boundary_combo_box)
+        MainWindow.setTabOrder(self.east_boundary_combo_box, self.east_boundary_spin_box)
+        MainWindow.setTabOrder(self.east_boundary_spin_box, self.west_boundary_combo_box)
+        MainWindow.setTabOrder(self.west_boundary_combo_box, self.west_boundary_spin_box)
+        MainWindow.setTabOrder(self.west_boundary_spin_box, self.north_boundary_combo_box)
+        MainWindow.setTabOrder(self.north_boundary_combo_box, self.north_boundary_spin_box)
+        MainWindow.setTabOrder(self.north_boundary_spin_box, self.south_boundary_combo_box)
+        MainWindow.setTabOrder(self.south_boundary_combo_box, self.south_boundary_spin_box)
+        MainWindow.setTabOrder(self.south_boundary_spin_box, self.run_btn)
+        MainWindow.setTabOrder(self.run_btn, self.Tab)
 
     def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(_translate("MainWindow", "Lightweight Applications for Transport Equations", None))

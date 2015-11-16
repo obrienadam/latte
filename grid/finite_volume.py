@@ -44,8 +44,8 @@ class FvGrid2D(FdGrid2D):
         self.rface_south_y = self.hface_centers_y[:, 0:-1] - self.cell_centers_y
 
         # Compute the face parameters
-        self.hface_norms_x = np.diff(self.ynodes, axis=0)
-        self.hface_norms_y = -np.diff(self.xnodes, axis=0)
+        self.hface_norms_x = -np.diff(self.ynodes, axis=0)
+        self.hface_norms_y = np.diff(self.xnodes, axis=0)
 
         self.vface_norms_x = np.diff(self.ynodes, axis=1)
         self.vface_norms_y = -np.diff(self.xnodes, axis=1)
@@ -81,6 +81,15 @@ class FvGrid2D(FdGrid2D):
                                             'west': {'type': 'fixed', 'refval': 0., 'bfield': cell_data[0, :]},
                                             'north': {'type': 'fixed', 'refval': 0., 'bfield': cell_data[:, -1]},
                                             'south': {'type': 'fixed', 'refval': 0., 'bfield': cell_data[:, 0]}}
+
+    def rename_field(self, old_field_name, new_field_name):
+        """
+        Renames the specified field
+        :param old_field_name: The name of the field to be renamed
+        :param new_field_name: The new field name
+        :return:
+        """
+        self.fields[new_field_name] = self.fields.pop(old_field_name)
 
     def cell_data(self, *args):
         """
@@ -151,13 +160,25 @@ class FvGrid2D(FdGrid2D):
         return np.array([zip(xvals, yvals) for xvals, yvals in zip(self.vface_norms_x[1:, :], self.vface_norms_y[1:, :])])
 
     def west_face_norms(self):
-        return [zip(xvals, yvals) for xvals, yvals in zip(-self.vface_norms_x[:-1, :], -self.vface_norms_y[:-1, :])]
+        return np.array([zip(xvals, yvals) for xvals, yvals in zip(-self.vface_norms_x[:-1, :], self.vface_norms_y[:-1, :])])
 
     def north_face_norms(self):
-        return [zip(xvals, yvals) for xvals, yvals in zip(self.hface_norms_x[:, 1:], self.hface_norms_y[:, 1:])]
+        return np.array([zip(xvals, yvals) for xvals, yvals in zip(self.hface_norms_x[:, 1:], self.hface_norms_y[:, 1:])])
 
     def south_face_norms(self):
-        return [zip(xvals, yvals) for xvals, yvals in zip(-self.hface_norms_x[:, :-1], -self.hface_norms_y[:, :-1])]
+        return np.array([zip(xvals, yvals) for xvals, yvals in zip(self.hface_norms_x[:, :-1], -self.hface_norms_y[:, :-1])])
+
+    def east_cell_rvecs(self):
+        return np.array([zip(xvals, yvals) for xvals, yvals in zip(self.rcell_h_x, self.rcell_h_y)])
+
+    def west_cell_rvecs(self):
+        return np.array([zip(xvals, yvals) for xvals, yvals in zip(-self.rcell_h_x, self.rcell_h_y)])
+
+    def north_cell_rvecs(self):
+        return np.array([zip(xvals, yvals) for xvals, yvals in zip(self.rcell_v_x, self.rcell_v_y)])
+
+    def south_cell_rvecs(self):
+        return np.array([zip(xvals, yvals) for xvals, yvals in zip(self.rcell_v_x, -self.rcell_v_y)])
 
     def cell_centers(self):
         """

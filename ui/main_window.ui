@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>800</width>
-    <height>620</height>
+    <height>655</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -58,7 +58,10 @@
              <bool>true</bool>
             </property>
             <property name="decimals">
-             <number>4</number>
+             <number>15</number>
+            </property>
+            <property name="maximum">
+             <double>9999999.000000000000000</double>
             </property>
             <property name="singleStep">
              <double>0.100000000000000</double>
@@ -81,7 +84,10 @@
              <bool>true</bool>
             </property>
             <property name="decimals">
-             <number>4</number>
+             <number>15</number>
+            </property>
+            <property name="maximum">
+             <double>9999999.000000000000000</double>
             </property>
             <property name="singleStep">
              <double>0.100000000000000</double>
@@ -248,7 +254,7 @@
                <bool>true</bool>
               </property>
               <property name="decimals">
-               <number>4</number>
+               <number>6</number>
               </property>
               <property name="singleStep">
                <double>0.100000000000000</double>
@@ -264,7 +270,7 @@
                <bool>true</bool>
               </property>
               <property name="decimals">
-               <number>4</number>
+               <number>6</number>
               </property>
               <property name="minimum">
                <double>0.000000000000000</double>
@@ -558,6 +564,30 @@
    </property>
   </action>
  </widget>
+ <tabstops>
+  <tabstop>solver_combo_box</tabstop>
+  <tabstop>density_spin_box</tabstop>
+  <tabstop>viscosity_spin_box</tabstop>
+  <tabstop>max_iters_spin_box</tabstop>
+  <tabstop>unsteady_on_radio_btn</tabstop>
+  <tabstop>unsteady_off_radio_btn</tabstop>
+  <tabstop>mesh_xresolution_spin_box</tabstop>
+  <tabstop>mesh_yresolution_spin_box</tabstop>
+  <tabstop>mesh_xdimensions_spin_box</tabstop>
+  <tabstop>mesh_ydimensions_spin_box</tabstop>
+  <tabstop>mesh_line_edit</tabstop>
+  <tabstop>browse_btn</tabstop>
+  <tabstop>east_boundary_combo_box</tabstop>
+  <tabstop>east_boundary_spin_box</tabstop>
+  <tabstop>west_boundary_combo_box</tabstop>
+  <tabstop>west_boundary_spin_box</tabstop>
+  <tabstop>north_boundary_combo_box</tabstop>
+  <tabstop>north_boundary_spin_box</tabstop>
+  <tabstop>south_boundary_combo_box</tabstop>
+  <tabstop>south_boundary_spin_box</tabstop>
+  <tabstop>run_btn</tabstop>
+  <tabstop>Tab</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>

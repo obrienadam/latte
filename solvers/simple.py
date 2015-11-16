@@ -1,18 +1,13 @@
-from .solver import Solver
+from .poisson import Poisson
+from numpy import dot
 
-class Simple(Solver):
+class Simple(Poisson):
     def __init__(self, grid, **kwargs):
         super(Simple, self).__init__(grid, **kwargs)
 
-        grid.add_fields('u', 'v', 'p', 'm', 'pCorr', cell_centered=True, face_centered=True)
+        grid.rename_field('phi', 'p')
+        grid.add_fields('u', 'v', 'm', 'pCorr', cell_centered=True, face_centered=True)
         grid.add_fields('gradP_x', 'gradP_y', 'gradPCorr_x', 'gradPCorr_y', cell_centered=True)
-
-        # Constant fields
-        grid.add_fields('diff', face_centered=True)
-
-        diff_x, diff_y = grid.face_data('diff')
-
-
 
         self.rho = kwargs.get('rho', 1.)
         self.mu = kwargs.get('mu', 0.1)
@@ -38,6 +33,12 @@ def compute_momentum(grid):
     sfs = grid.south_face_norms()
 
     u, v, p = grid.cell_data('u', 'v', 'p')
+
+    num_i, num_j = grid.cell_shape
+
+    for j in xrange(num_j):
+        for i in xrange(num_i):
+            pass
 
 
 
