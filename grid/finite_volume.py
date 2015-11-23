@@ -1,19 +1,30 @@
 import numpy as np
 from finite_difference import FdGrid2D
 import matplotlib.pyplot as plt
+from geometry import polygon as poly
 
 class FvGrid2D(FdGrid2D):
-    def __init__(self, shape, dimensions):
+    def __init__(self, shape, dimensions, num_ghost=1):
         """
         Initialize a 2D finite volume grid
         :param shape: The nodal resolution of the mesh
         :param dimensions: The absolute dimensions of the mesh
         :return: A constructed finite volume mesh
         """
-        super(FvGrid2D, self).__init__(shape, dimensions)
+        super(FvGrid2D, self).__init__(shape, dimensions, num_ghost)
 
         xdims = np.linspace(0, dimensions[0], shape[0])
         ydims = np.linspace(0, dimensions[1], shape[1])
+
+        xdiff = np.diff(xdims)
+        ydiff = np.diff(ydims)
+
+        for ghost_no in xrange(num_ghost):
+            xdims = np.insert(xdims, 0, xdims[0] - xdiff[0])
+            xdims = np.append(xdims, xdims[-1] + xdiff[-1])
+            ydims = np.insert(ydims, 0, ydims[0] - ydiff[0])
+            ydims = np.append(ydims, ydims[-1] + ydiff[-1])
+
         deltaxs = np.diff(xdims)
         deltays = np.diff(ydims)
 
@@ -189,18 +200,35 @@ class FvGrid2D(FdGrid2D):
     def plot(self, **kwargs):
         super(FvGrid2D, self).plot(**kwargs)
 
+        nghost = self.num_ghost
+
         if kwargs.get('mark_cell_centers', False):
-            plt.plot(self.cell_centers_x, self.cell_centers_y,
+            if kwargs.get('show_ghost', False):
+                cell_centers_x, cell_centers_y = self.cell_centers_x, self.cell_centers_y
+            else:
+                cell_centers_x, cell_centers_y = self.cell_centers_x[nghost:-nghost, nghost:-nghost], \
+                                                 self.cell_centers_y[nghost:-nghost, nghost:-nghost]
+
+            plt.plot(cell_centers_x, cell_centers_y,
                      'o', color='red', markersize=3)
 
         if kwargs.get('mark_faces', False):
-            plt.plot(self.hface_centers_x, self.hface_centers_y,
+            if kwargs.get('show_ghost', False):
+                hface_centers_x, hface_centers_y = self.hface_centers_x, self.hface_centers_y
+                vface_centers_x, vface_centers_y = self.vface_centers_x, self.vface_centers_y
+            else:
+                hface_centers_x, hface_centers_y = self.hface_centers_x[nghost:-nghost, nghost:-nghost], \
+                                                   self.hface_centers_y[nghost:-nghost, nghost:-nghost]
+                vface_centers_x, vface_centers_y = self.vface_centers_x[nghost:-nghost, nghost:-nghost], \
+                                                   self.vface_centers_y[nghost:-nghost, nghost:-nghost]
+
+            plt.plot(hface_centers_x, hface_centers_y,
                      'p', color='blue', markersize=3)
-            plt.plot(self.vface_centers_x, self.vface_centers_y,
+            plt.plot(vface_centers_x, vface_centers_y,
                      'p', color='blue', markersize=3)
 
 if __name__ == '__main__':
-    grid = FvGrid2D((21, 21), (1, 1))
+    grid = FvGrid2D((41, 41), (1, 1), 1)
     grid.add_fields('u', 'v', 'p', 'pCorr', 'm', 'phi', cell_centered=True, face_centered=True)
 
     sfe = grid.east_face_norms()

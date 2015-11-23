@@ -11,10 +11,10 @@ class Poisson(Solver):
         grid.add_fields('phi', face_centered=True, cell_centered=True)
 
         # Constant fields
-        grid.add_fields('a_e', 'a_w', 'a_n', 'a_s', 'a_p', cell_centered=True)
-        a_e, a_w, a_n, a_s, a_p = grid.cell_data('a_e', 'a_w', 'a_n', 'a_s', 'a_p')
+        grid.add_fields('d_e', 'd_w', 'd_n', 'd_s', 'd_p', cell_centered=True)
+        a_e, a_w, a_n, a_s, a_p = grid.cell_data('d_e', 'd_w', 'd_n', 'd_s', 'd_p')
 
-        # Get the cell face norms, however we don't want the last one!
+        # Get the cell face norms
         sfe = grid.east_face_norms()
         sfw = grid.west_face_norms()
         sfn = grid.north_face_norms()
