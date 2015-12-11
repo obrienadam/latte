@@ -5,5 +5,5 @@ class Solver(object):
         self.max_iters = kwargs.get('max_iters', 1)
         self.time_accurate = kwargs.get('time_accurate', False)
 
-    def solve(self, progress_bar):
+    def solve(self, **kwargs):
         raise NotImplementedError

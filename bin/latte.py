@@ -45,6 +45,8 @@ class Latte(QtGui.QApplication, Ui_MainWindow):
                         'rho': self.density_spin_box.value(),
                         'mu': self.viscosity_spin_box.value()}
 
+        solver_input['boundaries'] = boundaries
+
         print 'Solver input', solver_input
 
         solver_type = self.solver_combo_box.currentText()

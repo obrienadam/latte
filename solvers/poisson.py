@@ -1,7 +1,7 @@
 from solver import Solver
-from numpy import dot, array, reshape
+from numpy import dot, zeros, transpose, array
 import scipy.sparse as sp
-import scipy.linalg as la
+import scipy.sparse.linalg as spla
 import matplotlib.pylab as plt
 
 class Poisson(Solver):
@@ -11,10 +11,10 @@ class Poisson(Solver):
         grid.add_fields('phi', face_centered=True, cell_centered=True)
 
         # Constant fields
-        grid.add_fields('d_e', 'd_w', 'd_n', 'd_s', 'd_p', cell_centered=True)
+        grid.add_fields('d_e', 'd_w', 'd_n', 'd_s', 'd_p', 'b', cell_centered=True)
         a_e, a_w, a_n, a_s, a_p = grid.cell_data('d_e', 'd_w', 'd_n', 'd_s', 'd_p')
 
-        # Get the cell face norms
+        # Get the cell face norms (these methods are super expensive!)
         sfe = grid.east_face_norms()
         sfw = grid.west_face_norms()
         sfn = grid.north_face_norms()
@@ -25,36 +25,87 @@ class Poisson(Solver):
         rcw = grid.west_cell_rvecs()
         rcn = grid.north_cell_rvecs()
         rcs = grid.south_cell_rvecs()
-        nI, nJ = grid.cell_shape
+        nI, nJ = grid.interior_shape()
 
         for j in xrange(nJ):
             for i in xrange(nI):
-                a_e[i,j] = dot(sfe[i,j], sfe[i,j])/dot(sfe[i,j], rce[i,j]) if i < nI - 1 else 0.
-                a_w[i,j] = dot(sfw[i,j], sfw[i,j])/dot(sfw[i,j], rcw[i-1,j]) if i > 0 else 0.
-                a_n[i,j] = dot(sfn[i,j], sfn[i,j])/dot(sfn[i,j], rcn[i,j]) if j < nJ - 1 else 0.
-                a_s[i,j] = dot(sfs[i,j], sfs[i,j])/dot(sfs[i,j], rcs[i,j-1]) if j > 0 else 0.
+                a_e[i,j] = dot(sfe[i,j], sfe[i,j])/dot(sfe[i,j], rce[i,j])
+                a_w[i,j] = dot(sfw[i,j], sfw[i,j])/dot(sfw[i,j], rcw[i,j])
+                a_n[i,j] = dot(sfn[i,j], sfn[i,j])/dot(sfn[i,j], rcn[i,j])
+                a_s[i,j] = dot(sfs[i,j], sfs[i,j])/dot(sfs[i,j], rcs[i,j])
 
         for j in xrange(nJ):
             for i in xrange(nI):
                 a_p[i,j] = -sum((a_e[i,j], a_w[i,j], a_n[i,j], a_s[i,j]))
 
+        bcs = kwargs.get('bcs', None)
+
+        if bcs:
+            self.setupBcs(bcs)
+
         print "Initialization of poisson solver complete."
 
+    def setupBcs(self, bcs):
+        """
+        :param bcs: Dictionary containing bc information
+        :return:
+        """
+        a_e, a_w, a_n, a_s, a_p, b = self.grid.cell_data('d_e', 'd_w', 'd_n', 'd_s', 'd_p', 'b')
 
-    def solve(self, progress_bar):
-        a_e, a_w, a_n, a_s, a_p = self.grid.cell_data('a_e', 'a_w', 'a_n', 'a_s', 'a_p')
-        nx, ny = self.grid.cell_shape
+        if bcs['east']['type'] == 'zero_gradient':
+            a_p[-1,:] += a_e[-1,:]
+        elif bcs['east']['type'] == 'fixed':
+            b[-1,:] -= a_e[-1,:]*bcs['east']['value']
+
+        if bcs['west']['type'] == 'zero_gradient':
+            a_p[0,:] += a_w[0,:]
+        elif bcs['west']['type'] == 'fixed':
+            b[0,:] -= a_w[0,:]*bcs['west']['value']
+
+        if bcs['north']['type'] == 'zero_gradient':
+            a_p[:,-1] += a_n[:,-1]
+        elif bcs['north']['type'] == 'fixed':
+            b[:,-1] -= a_n[:,-1]*bcs['north']['value']
+
+        if bcs['south']['type'] == 'zero_gradient':
+            a_p[:,0] += a_s[:,0]
+        elif bcs['south']['type'] == 'fixed':
+            b[:,0] -= a_s[:,0]*bcs['south']['value']
+
+        a_e[-1,:] = 0.
+        a_w[0,:] = 0.
+        a_n[:,-1] = 0.
+        a_s[:,0] = 0.
+
+
+    def solve(self, **kwargs):
+        a_e, a_w, a_n, a_s, a_p, b = self.grid.cell_data('d_e', 'd_w', 'd_n', 'd_s', 'd_p', 'b')
+        phi = self.grid.cell_data('phi')
+        nx, ny = self.grid.interior_shape()
         n = nx*ny
 
-        d1 = a_s.reshape(n, order='C')[nx:]
-        d2 = a_w.reshape(n, order='C')[1:]
-        d3 = a_p.reshape(n, order='C')
-        d4 = a_e.reshape(n, order='C')[1:]
-        d5 = a_n.reshape(n, order='C')[nx:]
+        d1 = a_s.reshape(n, order='F')[nx:]
+        d2 = a_w.reshape(n, order='F')[1:]
+        d3 = a_p.reshape(n, order='F')
+        d4 = a_e.reshape(n, order='F')[0:n - 1]
+        d5 = a_n.reshape(n, order='F')[0:n - nx]
+
+        d2[nx - 1::nx] = 0.
+        d4[nx - 1::nx] = 0.
 
         spmat = sp.diags([d1, d2, d3, d4, d5], [-nx, -1, 0, 1, nx], format='csr')
-        plt.spy(spmat)
+
+        rhs = b.reshape(n, order='F')
+
+        phi = spla.spsolve(spmat, rhs).reshape((nx, ny), order='F')
+
+        x, y = self.grid.cell_centers()
+
+        plt.contourf(x, y, phi)
         plt.show()
+
+        if kwargs.get('progress_bar', None):
+            kwargs.get('progress_bar').setValue(100)
 
 
 
@@ -62,7 +113,13 @@ class Poisson(Solver):
 if __name__ == '__main__':
     from grid.finite_volume import FvGrid2D
 
-    g = FvGrid2D((11, 11), (1, 1))
+    g = FvGrid2D((301, 301), (1, 1))
 
-    solver = Poisson(g)
+
+    bce = {'type': 'zero_gradient', 'value': 1.}
+    bcw = {'type': 'fixed', 'value': 2.}
+    bcn = {'type': 'zero_gradient', 'value': 3.}
+    bcs = {'type': 'fixed', 'value': 4.}
+
+    solver = Poisson(g, bcs={'east': bce, 'west':bcw, 'north':bcn, 'south': bcs})
     solver.solve(3)

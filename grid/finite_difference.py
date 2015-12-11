@@ -30,6 +30,9 @@ class FdGrid2D(object):
         self.fields = {}
         self.boundary_fields = {}
 
+    def interior_shape(self):
+        return self.shape[0] - 2*self.num_ghost, self.shape[1] - 2*self.num_ghost
+
     def add_fields(self, *args):
         """
         Add fields to the finite difference mesh
@@ -37,7 +40,7 @@ class FdGrid2D(object):
         :return:
         """
         for field_name in args:
-            self.fields[field_name] = np.zeros(self.shape)
+            self.fields[field_name] = np.zeros(self.shape, order='F')
             field = self.fields[field_name]
             self.boundary_fields[field_name] = {'east': field[-1, :],
                                                 'west': field[0, :],
@@ -48,13 +51,6 @@ class FdGrid2D(object):
         """
         :param args: Names of fields
         :return: A tuple containing the node data of the desired fields
-        """
-        return tuple([self.fields[field_name] for field_name in args])
-
-    def interior_node_data(self, *args):
-        """
-        :param args: Name of fields
-        :return: A tuple containing only the interior node data of desired fields
         """
         nghost = self.num_ghost
         return tuple([self.fields[field_name][nghost:-nghost, nghost:-nghost] for field_name in args])
@@ -77,7 +73,7 @@ class FdGrid2D(object):
         """
         :return: A tuple containing all of the node coordinates
         """
-        return self.xnodes, self.ynodes
+        return [[(x, y) for x, y in zip(colx, coly)] for colx, coly in zip(self.xnodes, self.ynodes)]
 
     def plot(self, **kwargs):
         plt.plot(self.xnodes, self.ynodes,
