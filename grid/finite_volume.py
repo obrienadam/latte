@@ -98,14 +98,36 @@ class FvGrid2D(FdGrid2D):
                                           'north': {'type': 'fixed', 'refval': 0., 'bfield': cell_data[:, -ng:]},
                                           'south': {'type': 'fixed', 'refval': 0., 'bfield': cell_data[:, 0:ng]}}
 
-    def rename_field(self, old_field_name, new_field_name):
+    def rename_field(self, **kwargs):
         """
-        Renames the specified field
-        :param old_field_name: The name of the field to be renamed
-        :param new_field_name: The new field name
+        Renames the specifies field
+        :param kwargs: Key-value pair where the key is the old name and the value is the new name
         :return:
         """
-        self.fields[new_field_name] = self.fields.pop(old_field_name)
+        for old_field_name in kwargs:
+            self.fields[kwargs[old_field_name]] = self.fields.pop(old_field_name)
+
+    def set_const_field(self, **kwargs):
+        """
+        Sets the specified fields to a constant value
+        :param kwargs: Field names and their values
+        :return:
+        """
+        for field_name in kwargs:
+            field = self.fields[field_name]
+
+            if not field['cell_data'] == None:
+                field['cell_data'][:, :] = kwargs[field_name]
+
+            if not field['node_data'] == None:
+                field['node_ata'][:, :] = kwargs[field_name]
+
+            if not field['hface_data'] == None:
+                field['hface_data'][:, :] = kwargs[field_name]
+
+            if not field['vface_data'] == None:
+                field['vface_data'][:, :] = kwargs[field_name]
+
 
     def cell_data(self, *args):
         """
@@ -139,10 +161,9 @@ class FvGrid2D(FdGrid2D):
         :param args: Names of fields
         :return: A tuple containing tuples with the horizontal and vertical face data of the desired fields
         """
-        nghost = self.num_ghost
-        return self.fields[field_name]['hface_data'][nghost:-nghost, nghost:-nghost], self.fields[field_name][
-                                                                                          'vface_data'][nghost:-nghost,
-                                                                                      nghost:-nghost]
+        ng = self.num_ghost
+        hf, vf = self.fields[field_name]['hface_data'], self.fields[field_name]['vface_data']
+        return vf[ng + 1:-ng, ng:-ng], vf[ng:-ng - 1, ng:-ng], hf[ng:-ng, ng + 1:-ng], hf[ng:-ng, ng:-ng - 1]
 
     def xc(self, i, j):
         """
@@ -152,49 +173,8 @@ class FvGrid2D(FdGrid2D):
         """
         return self.cell_centers_x[i, j], self.cell_centers_y[i, j]
 
-    def sfe(self, i, j):
-        """
-        Get the east face normal at cell i, j
-        :param i: Index i
-        :param j: Index j
-        :return: Tuple containing x, y components of the outward normal
-        """
-        i += self.num_ghost
-        j += self.num_ghost
-        return self.vface_norms_x[i + 1, j], self.vface_norms_x[i + 1, j]
-
-    def sfw(self, i, j):
-        """
-        Get the west face normal at cell i, j
-        :param i: Index i
-        :param j: Index j
-        :return: Tuple containing x, y components of the outward normal
-        """
-        i += self.num_ghost
-        j += self.num_ghost
-        return -self.vface_norms_x[i, j], -self.vface_norms_x[i, j]
-
-    def sfn(self, i, j):
-        """
-        Get the north face normal at cell i, j
-        :param i: Index i
-        :param j: Index j
-        :return: Tuple containing x, y components of the outward normal
-        """
-        i += self.num_ghost
-        j += self.num_ghost
-        return self.hface_norms_x[i, j + 1], self.vface_norms_y[i, j + 1]
-
-    def sfs(self, i, j):
-        """
-        Get the south face normal at cell i, j
-        :param i: Index i
-        :param j: Index j
-        :return: Tuple containing x, y components of the outward normal
-        """
-        i += self.num_ghost
-        j += self.num_ghost
-        return -self.hface_norms_x[i, j], -self.hface_norms_x[i, j]
+    def face_norms(self):
+        return self.east_face_norms(), self.west_face_norms(), self.north_face_norms(), self.south_face_norms()
 
     def east_face_norms(self):
         ng = self.num_ghost
@@ -215,6 +195,9 @@ class FvGrid2D(FdGrid2D):
         ng = self.num_ghost
         return np.array([zip(xvals, yvals) for xvals, yvals in zip(self.hface_norms_x[ng:-ng, ng:-ng - 1],
                                                                    -self.hface_norms_y[ng:-ng, ng:-ng - 1])])
+
+    def cell_rvecs(self):
+        return self.east_cell_rvecs(), self.west_cell_rvecs(), self.north_cell_rvecs(), self.south_cell_rvecs()
 
     def east_cell_rvecs(self):
         ng = self.num_ghost

@@ -8,24 +8,19 @@ class Poisson(Solver):
     def __init__(self, grid, **kwargs):
         super(Poisson, self).__init__(grid, **kwargs)
 
-        grid.add_fields('phi', face_centered=True, cell_centered=True)
+        grid.add_fields('phi', 'gamma', face_centered=True, cell_centered=True)
 
         # Constant fields
         grid.add_fields('d_e', 'd_w', 'd_n', 'd_s', 'd_p', 'b', cell_centered=True)
-        a_e, a_w, a_n, a_s, a_p = grid.cell_data('d_e', 'd_w', 'd_n', 'd_s', 'd_p')
 
         # Get the cell face norms (these methods are super expensive!)
-        sfe = grid.east_face_norms()
-        sfw = grid.west_face_norms()
-        sfn = grid.north_face_norms()
-        sfs = grid.south_face_norms()
+        sfe, sfw, sfn, sfs = grid.face_norms()
 
         # Get all of the relative cell vecs for interior cells
-        rce = grid.east_cell_rvecs()
-        rcw = grid.west_cell_rvecs()
-        rcn = grid.north_cell_rvecs()
-        rcs = grid.south_cell_rvecs()
+        rce, rcw, rcn, rcs = grid.cell_rvecs()
+
         nI, nJ = grid.interior_shape()
+        a_e, a_w, a_n, a_s, a_p = grid.cell_data('d_e', 'd_w', 'd_n', 'd_s', 'd_p')
 
         for j in xrange(nJ):
             for i in xrange(nI):
@@ -38,14 +33,15 @@ class Poisson(Solver):
             for i in xrange(nI):
                 a_p[i,j] = -sum((a_e[i,j], a_w[i,j], a_n[i,j], a_s[i,j]))
 
+        grid.set_const_field(gamma=kwargs.get('gamma', 1.))
         bcs = kwargs.get('bcs', None)
 
         if bcs:
-            self.setupBcs(bcs)
+            self.setup_bcs(bcs)
 
         print "Initialization of poisson solver complete."
 
-    def setupBcs(self, bcs):
+    def setup_bcs(self, bcs):
         """
         :param bcs: Dictionary containing bc information
         :return:
@@ -119,7 +115,7 @@ if __name__ == '__main__':
     bce = {'type': 'zero_gradient', 'value': 1.}
     bcw = {'type': 'fixed', 'value': 2.}
     bcn = {'type': 'zero_gradient', 'value': 3.}
-    bcs = {'type': 'fixed', 'value': 4.}
+    bcs = {'type': 'fixed', 'value': 1.}
 
-    solver = Poisson(g, bcs={'east': bce, 'west':bcw, 'north':bcn, 'south': bcs})
-    solver.solve(3)
+    solver = Poisson(g, bcs={'east': bce, 'west':bcw, 'north':bcn, 'south': bcs}, gamma=0.01)
+    solver.solve(progress_bar=None)
