@@ -1,121 +1,49 @@
-from solver import Solver
-from numpy import dot, zeros, transpose, array
-import scipy.sparse as sp
-import scipy.sparse.linalg as spla
-import matplotlib.pylab as plt
+from equation.fv_equation import FvEquation, DiffusionTerm, AdvectionTerm
+import numpy as np
 
-class Poisson(Solver):
+class Poisson(object):
     def __init__(self, grid, **kwargs):
-        super(Poisson, self).__init__(grid, **kwargs)
+        self.grid = grid
 
-        grid.add_fields('phi', 'gamma', face_centered=True, cell_centered=True)
+        self.rho = kwargs.get('rho', 1.)
+        self.gamma = kwargs.get('gamma', 1.)
+        u = kwargs.get('u', np.ones(grid.core_shape))
+        v = kwargs.get('v', np.ones(grid.core_shape))
+        self.phi, = self.grid.add_fields(kwargs.get('field_name', 'phi'), cell_centered=True)
+        self.bcs = kwargs.get('bcs', {'type': ['f']*4,
+                                      'value': range(4)})
 
-        # Constant fields
-        grid.add_fields('d_e', 'd_w', 'd_n', 'd_s', 'd_p', 'b', cell_centered=True)
-
-        # Get the cell face norms (these methods are super expensive!)
-        sfe, sfw, sfn, sfs = grid.face_norms()
-
-        # Get all of the relative cell vecs for interior cells
-        rce, rcw, rcn, rcs = grid.cell_rvecs()
-
-        nI, nJ = grid.interior_shape()
-        a_e, a_w, a_n, a_s, a_p = grid.cell_data('d_e', 'd_w', 'd_n', 'd_s', 'd_p')
-
-        for j in xrange(nJ):
-            for i in xrange(nI):
-                a_e[i,j] = dot(sfe[i,j], sfe[i,j])/dot(sfe[i,j], rce[i,j])
-                a_w[i,j] = dot(sfw[i,j], sfw[i,j])/dot(sfw[i,j], rcw[i,j])
-                a_n[i,j] = dot(sfn[i,j], sfn[i,j])/dot(sfn[i,j], rcn[i,j])
-                a_s[i,j] = dot(sfs[i,j], sfs[i,j])/dot(sfs[i,j], rcs[i,j])
-
-        for j in xrange(nJ):
-            for i in xrange(nI):
-                a_p[i,j] = -sum((a_e[i,j], a_w[i,j], a_n[i,j], a_s[i,j]))
-
-        grid.set_const_field(gamma=kwargs.get('gamma', 1.))
-        bcs = kwargs.get('bcs', None)
-
-        if bcs:
-            self.setup_bcs(bcs)
-
-        print "Initialization of poisson solver complete."
-
-    def setup_bcs(self, bcs):
-        """
-        :param bcs: Dictionary containing bc information
-        :return:
-        """
-        a_e, a_w, a_n, a_s, a_p, b = self.grid.cell_data('d_e', 'd_w', 'd_n', 'd_s', 'd_p', 'b')
-
-        if bcs['east']['type'] == 'zero_gradient':
-            a_p[-1,:] += a_e[-1,:]
-        elif bcs['east']['type'] == 'fixed':
-            b[-1,:] -= a_e[-1,:]*bcs['east']['value']
-
-        if bcs['west']['type'] == 'zero_gradient':
-            a_p[0,:] += a_w[0,:]
-        elif bcs['west']['type'] == 'fixed':
-            b[0,:] -= a_w[0,:]*bcs['west']['value']
-
-        if bcs['north']['type'] == 'zero_gradient':
-            a_p[:,-1] += a_n[:,-1]
-        elif bcs['north']['type'] == 'fixed':
-            b[:,-1] -= a_n[:,-1]*bcs['north']['value']
-
-        if bcs['south']['type'] == 'zero_gradient':
-            a_p[:,0] += a_s[:,0]
-        elif bcs['south']['type'] == 'fixed':
-            b[:,0] -= a_s[:,0]*bcs['south']['value']
-
-        a_e[-1,:] = 0.
-        a_w[0,:] = 0.
-        a_n[:,-1] = 0.
-        a_s[:,0] = 0.
-
+        self.adv_term = AdvectionTerm(grid, u, v, self.rho, scheme='upwind')
+        self.diff_term = DiffusionTerm(grid, self.gamma)
+        self.phi_eqn = FvEquation(self.phi, bcs=self.bcs)
 
     def solve(self, **kwargs):
-        a_e, a_w, a_n, a_s, a_p, b = self.grid.cell_data('d_e', 'd_w', 'd_n', 'd_s', 'd_p', 'b')
-        phi = self.grid.cell_data('phi')
-        nx, ny = self.grid.interior_shape()
-        n = nx*ny
+        grid = self.grid
+        self.phi_eqn == self.adv_term - self.diff_term
+        self.phi_eqn.solve()
 
-        d1 = a_s.reshape(n, order='F')[nx:]
-        d2 = a_w.reshape(n, order='F')[1:]
-        d3 = a_p.reshape(n, order='F')
-        d4 = a_e.reshape(n, order='F')[0:n - 1]
-        d5 = a_n.reshape(n, order='F')[0:n - nx]
-
-        d2[nx - 1::nx] = 0.
-        d4[nx - 1::nx] = 0.
-
-        spmat = sp.diags([d1, d2, d3, d4, d5], [-nx, -1, 0, 1, nx], format='csr')
-
-        rhs = b.reshape(n, order='F')
-
-        phi = spla.spsolve(spmat, rhs).reshape((nx, ny), order='F')
-
-        x, y = self.grid.cell_centers()
-
-        plt.contourf(x, y, phi)
-        plt.show()
-
-        if kwargs.get('progress_bar', None):
-            kwargs.get('progress_bar').setValue(100)
-
-
-
+        return self.grid
 
 if __name__ == '__main__':
-    from grid.finite_volume import FvGrid2D
+    from grid.finite_volume import FvEquidistantGrid
+    import grid.viewers
 
-    g = FvGrid2D((301, 301), (1, 1))
+    g = FvEquidistantGrid(500, 1)
 
+    input = {
+        'time_accurate': False,
+        'dt': 0.05,
+        'max_iters': 10,
+        'field_name': 'theta',
+        'gamma': 0.1,
+        'rho': 1.,
+        'u': 2.,
+        'v': -1.,
+        'bcs': {'type': ['f', 'ng', 'f', 'ng'], 'value': [1, 0, 1, 0]},
+    }
 
-    bce = {'type': 'zero_gradient', 'value': 1.}
-    bcw = {'type': 'fixed', 'value': 2.}
-    bcn = {'type': 'zero_gradient', 'value': 3.}
-    bcs = {'type': 'fixed', 'value': 1.}
+    solver = Poisson(g, **input)
+    solution = solver.solve()
 
-    solver = Poisson(g, bcs={'east': bce, 'west':bcw, 'north':bcn, 'south': bcs}, gamma=0.01)
-    solver.solve(progress_bar=None)
+    grid.viewers.display_fv_solution(solution, input['field_name'], show=True, mark_cell_centers=False, show_grid=False)
+

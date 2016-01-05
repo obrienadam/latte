@@ -3,8 +3,8 @@
 import sys
 from PyQt4 import QtGui, QtCore
 from ui.main_window import Ui_MainWindow
-from grid.finite_volume import FvGrid2D
-from solvers.simple import Simple
+from grid.finite_volume import FvRectilinearGrid
+from solvers import simple, poisson
 
 class Latte(QtGui.QApplication, Ui_MainWindow):
     def __init__(self, args):
@@ -32,31 +32,40 @@ class Latte(QtGui.QApplication, Ui_MainWindow):
         shape = self.mesh_xresolution_spin_box.value(), self.mesh_yresolution_spin_box.value()
         dimensions = self.mesh_xdimensions_spin_box.value(), self.mesh_ydimensions_spin_box.value()
 
-        grid = FvGrid2D(shape, dimensions)
+        grid = FvRectilinearGrid(shape, dimensions)
 
-        boundaries = {'East': {'type': str(self.east_boundary_combo_box.currentText()), 'refval': self.east_boundary_spin_box.value()},
-                      'West': {'type': str(self.west_boundary_combo_box.currentText()), 'refval': self.west_boundary_spin_box.value()},
-                      'North': {'type': str(self.north_boundary_combo_box.currentText()), 'refval': self.north_boundary_spin_box.value()},
-                      'South': {'type': str(self.south_boundary_combo_box.currentText()), 'refval': self.south_boundary_spin_box.value()}}
-
-        solver_input = {'solver_type': str(self.solver_combo_box.currentText()),
-                        'max_iters': self.max_iters_spin_box.value(),
-                        'time_accurate': self.unsteady_on_radio_btn.isChecked(),
-                        'rho': self.density_spin_box.value(),
-                        'mu': self.viscosity_spin_box.value()}
-
-        solver_input['boundaries'] = boundaries
-
-        print 'Solver input', solver_input
+        bcs = {
+            'type': [self.east_boundary_combo_box.currentText(),
+                     self.north_boundary_combo_box.currentText(),
+                     self.west_boundary_combo_box.currentText(),
+                     self.south_boundary_combo_box.currentText()],
+            'value': [self.east_boundary_spin_box.value(),
+                      self.north_boundary_spin_box.value(),
+                      self.west_boundary_spin_box.value(),
+                      self.south_boundary_spin_box.value()]
+        }
 
         solver_type = self.solver_combo_box.currentText()
+        if solver_type == 'Poisson':
+            solver_input = {'gamma': [],
+                            'bcs': bcs,
+                            'time_accurate': False,
+                            }
 
-        if solver_type == 'Simple':
-            solver = Simple(grid, **solver_input)
-        elif solver_type == 'Piso':
+            solver = poisson.Poisson(grid, **solver_input)
+
+        elif solver_type == 'Simple':
+            solver_input = {'max_iters': self.max_iters_spin_box.value(),
+                            'time_accurate': self.unsteady_on_radio_btn.isChecked(),
+                            'rho': self.density_spin_box.value(),
+                            'mu': self.viscosity_spin_box.value()}
+
+            solver = simple.Simple(grid, **solver_input)
+
+        else:
             raise NotImplementedError
 
-        solver.solve(self.run_progress_bar)
+        print solver_input
 
     def browse_open_file(self):
         file_name = QtGui.QFileDialog.getOpenFileName(QtGui.QFileDialog())
