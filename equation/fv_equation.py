@@ -129,9 +129,9 @@ class FvEquation(object):
         bc_vals = self.bcs['value']
 
         for bc_coeff, bc_source, bc_type, bc_value, nb_coeff  in zip(self.a_boundary, self.b_boundary, bc_types, bc_vals, self.a_nb):
-            if bc_type is 'fixed' or 'f':
+            if bc_type is 'fixed' or bc_type is 'f':
                 bc_coeff[:, 4] = 1.
-            elif bc_type is 'normal_gradient' or 'ng':
+            elif bc_type is 'normal_gradient' or bc_type is 'ng':
                 bc_coeff[:, 4] = 1.
                 bc_coeff[:, nb_coeff] = -1.
             else:

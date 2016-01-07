@@ -95,14 +95,14 @@ if __name__ == '__main__':
     import numpy as np
 
     bcs = {
-        'type': ['inlet', 'inlet', 'outlet', 'wall'],
-        'value': [1., 1., 0., 0.],
+        'type': ['outlet', 'wall', 'inlet', 'wall'],
+        'value': [0., 0., 1., 0.],
     }
 
     g = FvEquidistantGrid(50, 1)
     simple = Simple(g, bcs=bcs)
 
-    for i in xrange(5):
+    for i in xrange(15):
         simple.solve()
 
     u, v = g.get_cell_fields('u', 'v')
