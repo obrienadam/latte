@@ -55,3 +55,25 @@ def display_fv_solution(grid, field_name, **kwargs):
     plt.savefig(f)
 
     return f
+
+def plot_line(grid, field_name, coord, **kwargs):
+    fig = plt.figure()
+    plt.axes().set_aspect('equal')
+
+    var, = grid.get_cell_fields(field_name)
+    cell_nodes = grid.cell_nodes
+
+    axis = kwargs.get('axis', 0)
+
+    if axis == 0:
+        plt.plot(cell_nodes[:, coord, 0], var[:, coord])
+    elif axis == 1:
+        plt.plot(cell_nodes[coord, :, 1], var[coord, :])
+
+    if kwargs.get('show', False):
+        plt.show()
+
+    f = BytesIO()
+    plt.savefig(f)
+
+    return f

@@ -91,21 +91,24 @@ class Simple(object):
 
 if __name__ == '__main__':
     from grid.finite_volume import FvEquidistantGrid
-    from grid.viewers import display_fv_solution
+    from grid.viewers import display_fv_solution, plot_line
     import numpy as np
 
     bcs = {
-        'type': ['outlet', 'inlet', 'inlet', 'wall'],
-        'value': [0., 1., 1., 0.],
+        'type': ['inlet', 'inlet', 'outlet', 'wall'],
+        'value': [1., 1., 0., 0.],
     }
 
     g = FvEquidistantGrid(50, 1)
     simple = Simple(g, bcs=bcs)
-    simple.solve()
+
+    for i in xrange(5):
+        simple.solve()
 
     u, v = g.get_cell_fields('u', 'v')
     vel, = g.add_cell_fields('vel')
 
     vel[:, :] = np.sqrt(u*u + v*v)
 
-    display_fv_solution(g, 'u', show=True)
+    plot_line(g, 'u', 25, axis=0, show=True)
+    display_fv_solution(g, 'vel', show=True)

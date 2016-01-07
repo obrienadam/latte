@@ -2,18 +2,23 @@ import numpy as np
 import scipy.sparse as sp
 import scipy.sparse.linalg as spla
 
-class Term(object):
+class Source(object):
     def __init__(self, shape):
         self.__shape = shape
-        self.a = np.zeros(self.shape + (5,), dtype=float, order='F')
         self.b = np.zeros(self.shape, dtype=float, order='F')
 
     @property
     def shape(self):
         return self.__shape
 
+class Term(Source):
+    def __init__(self, shape):
+        super(Term, self).__init__(shape)
+        self.a = np.zeros(self.shape + (5,), dtype=float, order='F')
+
     def __add__(self, other):
         term = Term(self.shape)
+
         term.a = self.a + other.a
         term.b = self.b + other.b
 
@@ -25,6 +30,10 @@ class Term(object):
         term.b = self.b - other.b
 
         return term
+
+    def __eq__(self, other):
+        self.b += other.b
+
 
 class DiffusionTerm(Term):
     def __init__(self, grid, *args):
