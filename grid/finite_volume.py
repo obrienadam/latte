@@ -77,18 +77,21 @@ class FvQuadrilateralGrid(object):
                 self._link_vecs[ic, jc, 3] = cell_nodes[i, j - 1] - cell_nodes[i, j]
 
 
-    def add_fields(self, *args, **kwargs):
-        cell_centered = kwargs.get('cell_centered', True)
-        link_centered = kwargs.get('link_centered', False)
+    def add_cell_fields(self, *args):
         new_fields = []
 
         for field_name in args:
-            if cell_centered:
-                self._cell_fields[field_name] = np.zeros(self.shape, **self.array_config)
-                new_fields.append(self._cell_fields[field_name])
+            self._cell_fields[field_name] = np.zeros(self.shape, **self.array_config)
+            new_fields.append(self._cell_fields[field_name])
 
-            if link_centered:
-                self._link_fields[field_name] = np.zeros(self.link_shape, **self.array_config)
+        return tuple(new_fields)
+
+    def add_link_fields(self, *args):
+        new_fields = []
+
+        for field_name in args:
+            self._link_fields[field_name] = np.zeros(self.link_shape, **self.array_config)
+            new_fields.append(self._link_fields[field_name])
 
         return tuple(new_fields)
 
@@ -108,14 +111,13 @@ class FvQuadrilateralGrid(object):
 
         return tuple(fields)
 
-    def link_fields(self, *args):
+    def get_link_fields(self, *args):
         fields = []
 
         for field_name in args:
             fields.append(self._link_fields[field_name])
 
         return tuple(fields)
-
 
     @property
     def shape(self):
@@ -177,6 +179,7 @@ class FvEquidistantGrid(FvQuadrilateralGrid):
         self._initialize_links()
 
         self._cell_fields = {'cell_areas': self._cell_areas}
+        self._link_fields = {}
 
     def _initialize_core_cells(self, nodes_x, nodes_y):
         cell_nodes = self._cell_nodes[1:-1, 1:-1]

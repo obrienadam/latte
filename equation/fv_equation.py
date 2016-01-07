@@ -61,6 +61,10 @@ class AdvectionTerm(Term):
         self.v = v
 
         for coeff in args:
+
+            if isnum(coeff):
+                coeff = float(coeff)
+
             self.u *= coeff
             self.v *= coeff
 
@@ -141,6 +145,10 @@ class FvEquation(object):
         self.var[:, :] = spla.spsolve(spmat, rhs).reshape(self.var.shape, order='F')
 
         return self.var
+
+    def relax(self, omega):
+        self.a[:, :, 4] /= omega
+        self.b[:, :] += (1. - omega)*self.var
 
     def __eq__(self, term):
         self.a_core[:, :] = term.a

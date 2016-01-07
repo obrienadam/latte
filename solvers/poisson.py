@@ -9,7 +9,7 @@ class Poisson(object):
         self.gamma = kwargs.get('gamma', 1.)
         u = kwargs.get('u', np.ones(grid.core_shape))
         v = kwargs.get('v', np.ones(grid.core_shape))
-        self.phi, = self.grid.add_fields(kwargs.get('field_name', 'phi'), cell_centered=True)
+        self.phi, = self.grid.add_cell_fields(kwargs.get('field_name', 'phi'))
         self.bcs = kwargs.get('bcs', {'type': ['f']*4,
                                       'value': range(4)})
 
