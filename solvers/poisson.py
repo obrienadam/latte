@@ -1,9 +1,10 @@
+from solver import Solver
 from equation.fv_equation import FvEquation, DiffusionTerm, AdvectionTerm
 import numpy as np
 
-class Poisson(object):
+class Poisson(Solver):
     def __init__(self, grid, **kwargs):
-        self.grid = grid
+        super(Poisson, self).__init__(grid)
 
         self.rho = kwargs.get('rho', 1.)
         self.gamma = kwargs.get('gamma', 1.)

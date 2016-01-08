@@ -14,7 +14,7 @@ class Source(object):
 class Term(Source):
     def __init__(self, shape):
         super(Term, self).__init__(shape)
-        self.a = np.zeros(self.shape + (5,), dtype=float, order='F')
+        self.a = np.ndarray(self.shape + (5,), dtype=float, order='F')
 
     def __add__(self, other):
         term = Term(self.shape)
@@ -32,8 +32,11 @@ class Term(Source):
         return term
 
     def __eq__(self, other):
-        self.b += other.b
+        term = Term(self.shape)
+        term.a[:, :, :] = self.a
+        term.b[:, :] = self.n + other.b
 
+        return term
 
 class DiffusionTerm(Term):
     def __init__(self, grid, *args):
@@ -54,6 +57,10 @@ class DiffusionTerm(Term):
         self.a[:, :, 4] = -np.sum(self.a[:, :, :-1], axis=2, dtype=float)
 
 class AdvectionTerm(Term):
+
+    upwind_nb = np.vectorize(lambda a: min(a, 0.))
+    upwind_p = np.vectorize(lambda a: max(a, 0.))
+
     def __init__(self, grid, u, v, *args, **kwargs):
         super(AdvectionTerm, self).__init__(grid.core_shape)
 
@@ -86,15 +93,12 @@ class AdvectionTerm(Term):
             self.a[:, :, 4] = np.sum(self.a[:, :, :-1], axis=2, dtype=float)
 
         elif scheme is 'upwind':
-            upwind_nb = np.vectorize(lambda a: min(a, 0.))
-            upwind_p = np.vectorize(lambda a: max(a, 0.))
-
             self.a[:, :, 4] = 0.
 
             for i in xrange(4):
                 dot_us = sn[:, :, i, 0]*self.u[:, :, i] + sn[:, :, i, 1]*self.v[:, :, i]
-                self.a[:, :, i] = upwind_nb(dot_us)
-                self.a[:, :, 4] += upwind_p(dot_us)
+                self.a[:, :, i] = self.upwind_nb(dot_us)
+                self.a[:, :, 4] += self.upwind_p(dot_us)
 
         else:
             raise ValueError
@@ -109,7 +113,7 @@ class FvEquation(object):
         self.shape = var.shape
 
         self.bcs = kwargs.get('bcs', {'type': ['fixed']*4,
-                                      'value': np.array(range(0, 4)),
+                                      'value': [0.]*4,
                                       })
 
         # Implicit coefficients
@@ -157,7 +161,7 @@ class FvEquation(object):
 
     def relax(self, omega):
         self.a[:, :, 4] /= omega
-        self.b[:, :] += (1. - omega)*self.var
+        self.b[:, :] += (1. - omega)*self.a[:, :, 4]*self.var
 
     def __eq__(self, term):
         self.a_core[:, :] = term.a

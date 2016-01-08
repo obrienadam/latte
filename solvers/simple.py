@@ -1,15 +1,23 @@
-from equation.fv_equation import FvEquation, DiffusionTerm, AdvectionTerm
+from solver import Solver
+from equation.fv_equation import FvEquation, DiffusionTerm, AdvectionTerm, Source
 
-class Simple(object):
+class Simple(Solver):
     def __init__(self, grid, **kwargs):
-        self.grid = grid
+        super(Simple, self).__init__(grid)
 
-        self.u, self.v, self.p, self.p_corr = grid.add_cell_fields('u', 'v', 'p', 'p_corr')
-        self.u_f, self.v_f = grid.add_link_fields('u_f', 'v_f')
-
-        self.rho = kwargs.get('rho', 1.)
-        self.mu = kwargs.get('mu', 0.1)
+        # Configuration
         self.adv_scheme = kwargs.get('advection_scheme', 'upwind')
+        self.omega_momentum = kwargs.get('omega_momentum', 0.7)
+        self.omega_p_corr = kwargs.get('omega_p_corr', 0.3)
+        self.rho = kwargs.get('rho', 1.)
+        self.mu = kwargs.get('mu', 0.01)
+
+        # Initialize fields
+        self.u, self.v, self.p, self.p_corr = grid.add_cell_fields('u', 'v', 'p', 'p_corr')
+        self.dp_x, self.dp_y = grid.add_cell_fields('dp_x', 'dp_y')
+        self.d, = grid.add_cell_fields('d')
+
+        self.uf, self.vf = grid.add_link_fields('uf', 'vf')
 
         self.u_eqn = FvEquation(self.u)
         self.v_eqn = FvEquation(self.v)
@@ -21,14 +29,27 @@ class Simple(object):
         self._compute_interpolation_coeffs(**kwargs)
 
     def solve(self):
-        self._interpolate_faces(self.u, self.u_f)
-        self._interpolate_faces(self.v, self.v_f)
+        u_source = Source(self.grid.core_shape)
+        v_source = Source(self.grid.core_shape)
 
-        self.u_eqn == AdvectionTerm(self.grid, self.u_f, self.v_f, self.rho, scheme=self.adv_scheme) - self.laplacian
-        self.v_eqn == AdvectionTerm(self.grid, self.u_f, self.v_f, self.rho, scheme=self.adv_scheme) - self.laplacian
+        pf = self._interpolate_faces(self.p)
+        self.dp_x[1:-1, 1:-1], self.dp_y[1:-1, 1:-1] = self._compute_gradient(pf)
+
+        u_source.b[:, :] = -self.areas*self.dp_x[1:-1, 1:-1] - 1
+        v_source.b[:, :] = -self.areas*self.dp_y[1:-1, 1:-1]
+
+        self.u_eqn == AdvectionTerm(self.grid, self.uf, self.vf, self.rho, scheme=self.adv_scheme) - self.laplacian == u_source
+        self.v_eqn == AdvectionTerm(self.grid, self.uf, self.vf, self.rho, scheme=self.adv_scheme) - self.laplacian == v_source
+
+        self.u_eqn.relax(self.omega_momentum)
+        self.v_eqn.relax(self.omega_momentum)
 
         self.u_eqn.solve()
         self.v_eqn.solve()
+
+        self.uf[:, :], self.vf[:, :], df = self._rhie_chow_interpolate_faces(self.u, self.v, self.p)
+
+        self.p_corr_eqn == DiffusionTerm(self.grid, self.rho, df)
 
     def _setup_bcs(self, bcs):
         self.bcs = bcs
@@ -67,31 +88,46 @@ class Simple(object):
         self.v_eqn.bcs = v_bcs
         self.p_corr_eqn.bcs = p_bcs
 
-    def _compute_interpolation_coeffs(self, **kwargs):
-        grid = self.grid
-        self.alpha, = grid.add_link_fields('alpha')
-        alphas = self.alpha
+    def _compute_d(self):
+        d, = self.grid.get_cell_fields('d')
 
-        if kwargs.get('interpolation_method', 'volume_weighted') == 'volume_weighted':
-            areas = grid.core_cell_areas
+        d[1:-1, 1:-1] = self.grid.core_cell_areas/0.5*(self.u_eqn.a_core[:, :, 4] + self.v_eqn.a_core[:, :, 4])
+        d[0, :] = d[1, :]
+        d[-1, :] = d[-2, :]
+        d[:, 0] = d[:, 1]
+        d[:, -1] = d[:, -2]
 
-            alphas[:-1, :, 0] = areas[1:, :]/(areas[1:, :] + areas[:-1, :])
-            alphas[:, :-1, 1] = areas[:, 1:]/(areas[:, 1:] + areas[:, :-1])
-            alphas[1:, :, 2] = areas[:-1, :]/(areas[:-1, :] + areas[1:, :])
-            alphas[:, 1:, 3] = areas[:, :-1]/(areas[:, :-1] + areas[:, 1:])
-        else:
-            raise ValueError
+        return d
 
-    def _interpolate_faces(self, cell_field, face_field):
-        alphas = self.alpha
-        face_field[:, :, 0] = alphas[:, :, 0]*cell_field[1:-1, 1:-1] + (1 - alphas[:, :, 0])*cell_field[2:, 1:-1]
-        face_field[:, :, 1] = alphas[:, :, 1]*cell_field[1:-1, 1:-1] + (1 - alphas[:, :, 1])*cell_field[1:-1, 2:]
-        face_field[:, :, 2] = alphas[:, :, 2]*cell_field[1:-1, 1:-1] + (1 - alphas[:, :, 2])*cell_field[:-2, 1:-1]
-        face_field[:, :, 3] = alphas[:, :, 3]*cell_field[1:-1, 1:-1] + (1 - alphas[:, :, 3])*cell_field[1:-1, :-2]
+    def _rhie_chow_interpolate_faces(self, u, v, p):
+        uf, vf, pf= self._interpolate_faces(u), self._interpolate_faces(v), self._interpolate_faces(p)
+        dp_x, dp_y = self.grid.get_cell_fields('dp_x', 'dp_y')
+
+        self.dp_x[1:-1, 1:-1], self.dp_y[1:-1, 1:-1] = self._compute_gradient(pf)
+
+        self.d = self._compute_d()
+        df = self._interpolate_faces(self.d)
+
+        sn, rc = self.sn, self.rc
+        p = self.p
+
+        den = sn[:, :, :, 0]*rc[:, :, :, 0] + sn[:, :, :, 1]*rc[:, :, :, 1]
+
+        uf[:, :, 0] = uf[:, :, 0] - df[:, :, 0]*(p[2:, 1:-1] - p[1:-1, 1:-1])*sn[:, :, 0, 0]/den[:, :, 0]
+        uf[:, :, 1] = uf[:, :, 1] - df[:, :, 1]*(p[1:-1, 2:] - p[1:-1, 1:-1])*sn[:, :, 1, 0]/den[:, :, 1]
+        uf[:, :, 2] = uf[:, :, 2] - df[:, :, 2]*(p[:-2, 1:-1] - p[1:-1, 1:-1])*sn[:, :, 2, 0]/den[:, :, 2]
+        uf[:, :, 3] = uf[:, :, 3] - df[:, :, 3]*(p[1:-1, :-2] - p[1:-1, 1:-1])*sn[:, :, 3, 0]/den[:, :, 3]
+
+        vf[:, :, 0] = vf[:, :, 0] - df[:, :, 0]*(p[2:, 1:-1] - p[1:-1, 1:-1])*sn[:, :, 0, 1]/den[:, :, 0]
+        vf[:, :, 1] = vf[:, :, 1] - df[:, :, 1]*(p[1:-1, 2:] - p[1:-1, 1:-1])*sn[:, :, 1, 1]/den[:, :, 1]
+        vf[:, :, 2] = vf[:, :, 2] - df[:, :, 2]*(p[:-2, 1:-1] - p[1:-1, 1:-1])*sn[:, :, 2, 1]/den[:, :, 2]
+        vf[:, :, 3] = vf[:, :, 3] - df[:, :, 3]*(p[1:-1, :-2] - p[1:-1, 1:-1])*sn[:, :, 3, 1]/den[:, :, 3]
+
+        return uf, vf, df
 
 if __name__ == '__main__':
     from grid.finite_volume import FvEquidistantGrid
-    from grid.viewers import display_fv_solution, plot_line
+    from grid.viewers import display_fv_solution
     import numpy as np
 
     bcs = {
@@ -99,16 +135,24 @@ if __name__ == '__main__':
         'value': [0., 0., 1., 0.],
     }
 
-    g = FvEquidistantGrid(50, 1)
-    simple = Simple(g, bcs=bcs)
+    input = {
+        'bcs': bcs,
+        'rho': 1.2,
+        'mu': 5e-3,
+        'omega_momentum': 0.5,
+        'omega_p_corr': 0.2,
+        'advection_scheme': 'upwind',
+    }
 
-    for i in xrange(15):
+    g = FvEquidistantGrid(70, 1)
+    simple = Simple(g, **input)
+
+    for i in xrange(400):
         simple.solve()
 
     u, v = g.get_cell_fields('u', 'v')
     vel, = g.add_cell_fields('vel')
 
     vel[:, :] = np.sqrt(u*u + v*v)
-
-    plot_line(g, 'u', 25, axis=0, show=True)
-    display_fv_solution(g, 'vel', show=True)
+    print np.max(np.max(vel))
+    display_fv_solution(g, 'u', show=True, show_grid=False, mark_cell_centers=False)

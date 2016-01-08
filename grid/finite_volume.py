@@ -81,7 +81,9 @@ class FvQuadrilateralGrid(object):
         new_fields = []
 
         for field_name in args:
-            self._cell_fields[field_name] = np.zeros(self.shape, **self.array_config)
+            if field_name not in self._cell_fields:
+                self._cell_fields[field_name] = np.zeros(self.shape, **self.array_config)
+
             new_fields.append(self._cell_fields[field_name])
 
         return tuple(new_fields)
@@ -90,10 +92,25 @@ class FvQuadrilateralGrid(object):
         new_fields = []
 
         for field_name in args:
-            self._link_fields[field_name] = np.zeros(self.link_shape, **self.array_config)
+            if field_name not in self._link_fields:
+                self._link_fields[field_name] = np.zeros(self.link_shape, **self.array_config)
+
             new_fields.append(self._link_fields[field_name])
 
         return tuple(new_fields)
+
+    def add_existing_cell_fields(self, *args):
+        for field_tuple in args:
+            field_name = field_tuple[0]
+            field = field_tuple[1]
+
+            if np.array_equal(field.shape, self.shape):
+                self._cell_fields[field_name] = field
+            elif np.array_equal(field.shape, self.core_shape):
+                new_field, = self.add_cell_fields(field_name)
+                new_field[1:-1, 1:-1] = field
+            else:
+                raise AttributeError
 
     def get_cell_fields(self, *args):
         fields = []
