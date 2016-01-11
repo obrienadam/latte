@@ -15,6 +15,7 @@ class Simple(Solver):
         # Initialize fields
         self.u, self.v, self.p, self.p_corr = grid.add_cell_fields('u', 'v', 'p', 'p_corr')
         self.dp_x, self.dp_y = grid.add_cell_fields('dp_x', 'dp_y')
+        self.dp_corr_x, self.dp_corr_y = grid.add_cell_fields('dp_corr_x', 'dp_corr_y')
         self.d, = grid.add_cell_fields('d')
 
         self.uf, self.vf = grid.add_link_fields('uf', 'vf')
@@ -56,6 +57,8 @@ class Simple(Solver):
         self.p_corr_eqn == (DiffusionTerm(self.grid, df) == mass_source)
         self.p_corr_eqn.solve()
 
+        self._correct(df)
+
     def _setup_bcs(self, bcs):
         self.bcs = bcs
 
@@ -80,7 +83,7 @@ class Simple(Solver):
                 v_types[i] = 'normal_gradient'
                 p_types[i] = 'fixed'
                 u_values[i], v_values[i] = 0., 0.
-                p_values[i] = values[i]
+                p_values[i] = 0.
             elif types[i] is 'wall':
                 u_types[i] = 'fixed'
                 v_types[i] = 'fixed'
@@ -117,22 +120,33 @@ class Simple(Solver):
         p = self.p
 
         den = sn[:, :, :, 0]*rc[:, :, :, 0] + sn[:, :, :, 1]*rc[:, :, :, 1]
+        p_curr = p[1:-1, 1:-1]
 
-        uf[:, :, 0] = uf[:, :, 0] - df[:, :, 0]*(p[2:, 1:-1] - p[1:-1, 1:-1])*sn[:, :, 0, 0]/den[:, :, 0]
-        uf[:, :, 1] = uf[:, :, 1] - df[:, :, 1]*(p[1:-1, 2:] - p[1:-1, 1:-1])*sn[:, :, 1, 0]/den[:, :, 1]
-        uf[:, :, 2] = uf[:, :, 2] - df[:, :, 2]*(p[:-2, 1:-1] - p[1:-1, 1:-1])*sn[:, :, 2, 0]/den[:, :, 2]
-        uf[:, :, 3] = uf[:, :, 3] - df[:, :, 3]*(p[1:-1, :-2] - p[1:-1, 1:-1])*sn[:, :, 3, 0]/den[:, :, 3]
+        uf[:, :, 0] = uf[:, :, 0] - df[:, :, 0]*(p[2:, 1:-1] - p_curr)*sn[:, :, 0, 0]/den[:, :, 0]
+        uf[:, :, 1] = uf[:, :, 1] - df[:, :, 1]*(p[1:-1, 2:] - p_curr)*sn[:, :, 1, 0]/den[:, :, 1]
+        uf[:, :, 2] = uf[:, :, 2] - df[:, :, 2]*(p[:-2, 1:-1] - p_curr)*sn[:, :, 2, 0]/den[:, :, 2]
+        uf[:, :, 3] = uf[:, :, 3] - df[:, :, 3]*(p[1:-1, :-2] - p_curr)*sn[:, :, 3, 0]/den[:, :, 3]
 
-        vf[:, :, 0] = vf[:, :, 0] - df[:, :, 0]*(p[2:, 1:-1] - p[1:-1, 1:-1])*sn[:, :, 0, 1]/den[:, :, 0]
-        vf[:, :, 1] = vf[:, :, 1] - df[:, :, 1]*(p[1:-1, 2:] - p[1:-1, 1:-1])*sn[:, :, 1, 1]/den[:, :, 1]
-        vf[:, :, 2] = vf[:, :, 2] - df[:, :, 2]*(p[:-2, 1:-1] - p[1:-1, 1:-1])*sn[:, :, 2, 1]/den[:, :, 2]
-        vf[:, :, 3] = vf[:, :, 3] - df[:, :, 3]*(p[1:-1, :-2] - p[1:-1, 1:-1])*sn[:, :, 3, 1]/den[:, :, 3]
+        vf[:, :, 0] = vf[:, :, 0] - df[:, :, 0]*(p[2:, 1:-1] - p_curr)*sn[:, :, 0, 1]/den[:, :, 0]
+        vf[:, :, 1] = vf[:, :, 1] - df[:, :, 1]*(p[1:-1, 2:] - p_curr)*sn[:, :, 1, 1]/den[:, :, 1]
+        vf[:, :, 2] = vf[:, :, 2] - df[:, :, 2]*(p[:-2, 1:-1] - p_curr)*sn[:, :, 2, 1]/den[:, :, 2]
+        vf[:, :, 3] = vf[:, :, 3] - df[:, :, 3]*(p[1:-1, :-2] - p_curr)*sn[:, :, 3, 1]/den[:, :, 3]
 
         return uf, vf, df
 
+    def _correct(self, df):
+        self.p[:, :] += self.p_corr*self.omega_p_corr
+        self.p_corr_f = self._interpolate_faces(self.p_corr)
+        self.dp_corr_x[1:-1, 1:-1], self.dp_corr_y[1:-1, 1:-1] = self._compute_gradient(self.p_corr_f)
+
+        self.u[1:-1, 1:-1] -= self.dp_corr_x[1:-1, 1:-1]*self.d[1:-1, 1:-1]
+        self.v[1:-1, 1:-1] -= self.dp_corr_y[1:-1, 1:-1]*self.d[1:-1, 1:-1]
+
+        # Finally must correct the mass fluxes
+
 if __name__ == '__main__':
     from grid.finite_volume import FvEquidistantGrid, FvRectilinearGrid
-    from grid.viewers import display_fv_solution
+    from grid.viewers import display_fv_solution, plot_line
     import numpy as np
 
     bcs = {
@@ -144,20 +158,21 @@ if __name__ == '__main__':
         'bcs': bcs,
         'rho': 1.2,
         'mu': 1e-2,
-        'omega_momentum': 0.95,
+        'omega_momentum': 0.2,
         'omega_p_corr': 0.2,
         'advection_scheme': 'upwind',
     }
 
-    g = FvRectilinearGrid((160, 80), (2, 1))
+    g = FvRectilinearGrid((80, 40), (2, 1))
     simple = Simple(g, **input)
 
-    for i in xrange(120):
+    for i in xrange(400):
         simple.solve()
 
     u, v = g.get_cell_fields('u', 'v')
     vel, = g.add_cell_fields('vel')
 
     vel[:, :] = np.sqrt(u*u + v*v)
-    print np.max(np.max(vel))
-    display_fv_solution(g, 'p_corr', show=True, show_grid=False, mark_cell_centers=False)
+    print g.get_cell_fields('dp_x')
+    display_fv_solution(g, 'u', show=True, show_grid=True, mark_cell_centers=False)
+    plot_line(g, 'u', 79, axis=1, show=True)
