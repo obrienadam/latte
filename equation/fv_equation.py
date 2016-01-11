@@ -34,8 +34,7 @@ class Term(Source):
     def __eq__(self, other):
         term = Term(self.shape)
         term.a[:, :, :] = self.a
-        term.b[:, :] = self.n + other.b
-
+        term.b[:, :] = self.b + other.b
         return term
 
 class DiffusionTerm(Term):
@@ -61,16 +60,17 @@ class AdvectionTerm(Term):
     upwind_nb = np.vectorize(lambda a: min(a, 0.))
     upwind_p = np.vectorize(lambda a: max(a, 0.))
 
+    def isnum(self, num):
+        return isinstance(num, float) or isinstance(num, int)
+
     def __init__(self, grid, u, v, *args, **kwargs):
         super(AdvectionTerm, self).__init__(grid.core_shape)
 
         sn, rc = grid.core_face_norms, grid.core_links
 
-        isnum = lambda num: isinstance(num, float) or isinstance(num, int)
-
-        if isnum(u):
+        if self.isnum(u):
             u = u*np.ones(self.shape + (4,), dtype=float, order='F')
-        if isnum(v):
+        if self.isnum(v):
             v = v*np.ones(self.shape + (4,), dtype=float, order='F')
 
         self.u = u
@@ -78,7 +78,7 @@ class AdvectionTerm(Term):
 
         for coeff in args:
 
-            if isnum(coeff):
+            if self.isnum(coeff):
                 coeff = float(coeff)
 
             self.u *= coeff

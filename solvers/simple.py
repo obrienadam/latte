@@ -35,11 +35,11 @@ class Simple(Solver):
         pf = self._interpolate_faces(self.p)
         self.dp_x[1:-1, 1:-1], self.dp_y[1:-1, 1:-1] = self._compute_gradient(pf)
 
-        u_source.b[:, :] = -self.areas*self.dp_x[1:-1, 1:-1] - 1
+        u_source.b[:, :] = -self.areas*self.dp_x[1:-1, 1:-1]
         v_source.b[:, :] = -self.areas*self.dp_y[1:-1, 1:-1]
 
-        self.u_eqn == AdvectionTerm(self.grid, self.uf, self.vf, self.rho, scheme=self.adv_scheme) - self.laplacian == u_source
-        self.v_eqn == AdvectionTerm(self.grid, self.uf, self.vf, self.rho, scheme=self.adv_scheme) - self.laplacian == v_source
+        self.u_eqn == (AdvectionTerm(self.grid, self.uf, self.vf, self.rho, scheme=self.adv_scheme) - self.laplacian == u_source)
+        self.v_eqn == (AdvectionTerm(self.grid, self.uf, self.vf, self.rho, scheme=self.adv_scheme) - self.laplacian == v_source)
 
         self.u_eqn.relax(self.omega_momentum)
         self.v_eqn.relax(self.omega_momentum)
@@ -49,7 +49,12 @@ class Simple(Solver):
 
         self.uf[:, :], self.vf[:, :], df = self._rhie_chow_interpolate_faces(self.u, self.v, self.p)
 
-        self.p_corr_eqn == DiffusionTerm(self.grid, self.rho, df)
+        mass_source = Source(self.grid.core_shape)
+        mass_source.b[:, :] = np.sum((self.uf*self.grid.core_face_norms[:, :, :, 0] + self.vf*self.grid.core_face_norms[:, :, :, 1]), dtype=float, axis=-1)
+
+
+        self.p_corr_eqn == (DiffusionTerm(self.grid, df) == mass_source)
+        self.p_corr_eqn.solve()
 
     def _setup_bcs(self, bcs):
         self.bcs = bcs
@@ -126,7 +131,7 @@ class Simple(Solver):
         return uf, vf, df
 
 if __name__ == '__main__':
-    from grid.finite_volume import FvEquidistantGrid
+    from grid.finite_volume import FvEquidistantGrid, FvRectilinearGrid
     from grid.viewers import display_fv_solution
     import numpy as np
 
@@ -138,16 +143,16 @@ if __name__ == '__main__':
     input = {
         'bcs': bcs,
         'rho': 1.2,
-        'mu': 5e-3,
-        'omega_momentum': 0.5,
+        'mu': 1e-2,
+        'omega_momentum': 0.95,
         'omega_p_corr': 0.2,
         'advection_scheme': 'upwind',
     }
 
-    g = FvEquidistantGrid(70, 1)
+    g = FvRectilinearGrid((160, 80), (2, 1))
     simple = Simple(g, **input)
 
-    for i in xrange(400):
+    for i in xrange(120):
         simple.solve()
 
     u, v = g.get_cell_fields('u', 'v')
@@ -155,4 +160,4 @@ if __name__ == '__main__':
 
     vel[:, :] = np.sqrt(u*u + v*v)
     print np.max(np.max(vel))
-    display_fv_solution(g, 'u', show=True, show_grid=False, mark_cell_centers=False)
+    display_fv_solution(g, 'p_corr', show=True, show_grid=False, mark_cell_centers=False)
