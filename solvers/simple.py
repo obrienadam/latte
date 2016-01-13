@@ -45,17 +45,16 @@ class Simple(Solver):
         self.u_eqn.relax(self.omega_momentum)
         self.v_eqn.relax(self.omega_momentum)
 
-        self.u_eqn.solve()
-        self.v_eqn.solve()
+        self.u_eqn.iterative_solve(maxiter=20)
+        self.v_eqn.iterative_solve(maxiter=20)
 
         self.uf[:, :], self.vf[:, :], df = self._rhie_chow_interpolate_faces(self.u, self.v, self.p)
 
         mass_source = Source(self.grid.core_shape)
-        mass_source.b[:, :] = np.sum((self.uf*self.grid.core_face_norms[:, :, :, 0] + self.vf*self.grid.core_face_norms[:, :, :, 1]), dtype=float, axis=-1)
+        mass_source.b[:, :] = self.rho*np.sum((self.uf*self.grid.core_face_norms[:, :, :, 0] + self.vf*self.grid.core_face_norms[:, :, :, 1]), dtype=float, axis=-1)
 
-
-        self.p_corr_eqn == (DiffusionTerm(self.grid, df) == mass_source)
-        self.p_corr_eqn.solve()
+        self.p_corr_eqn == (DiffusionTerm(self.grid, df, self.rho) == mass_source)
+        self.p_corr_eqn.iterative_solve(maxiter=100, tol=1e-4)
 
         self._correct(df)
 
@@ -89,6 +88,7 @@ class Simple(Solver):
                 v_types[i] = 'fixed'
                 p_types[i] = 'normal_gradient'
                 u_values[i], v_values[i] = (0., values[i]) if i%2 is 0 else (values[i], 0.)
+                p_values[i] = 0.
             else:
                 raise ValueError
 
@@ -97,9 +97,9 @@ class Simple(Solver):
         self.p_corr_eqn.bcs = p_bcs
 
     def _compute_d(self):
-        d, = self.grid.get_cell_fields('d')
+        d = self.d
 
-        d[1:-1, 1:-1] = self.grid.core_cell_areas/0.5*(self.u_eqn.a_core[:, :, 4] + self.v_eqn.a_core[:, :, 4])
+        d[1:-1, 1:-1] = self.grid.core_cell_areas/self.u_eqn.a_core[:, :, 4]
         d[0, :] = d[1, :]
         d[-1, :] = d[-2, :]
         d[:, 0] = d[:, 1]
@@ -108,19 +108,24 @@ class Simple(Solver):
         return d
 
     def _rhie_chow_interpolate_faces(self, u, v, p):
-        uf, vf, pf= self._interpolate_faces(u), self._interpolate_faces(v), self._interpolate_faces(p)
-        dp_x, dp_y = self.grid.get_cell_fields('dp_x', 'dp_y')
+        pf = self._interpolate_faces(p)
+        dp_x, dp_y = self.dp_x, self.dp_y
 
-        self.dp_x[1:-1, 1:-1], self.dp_y[1:-1, 1:-1] = self._compute_gradient(pf)
+        dp_x[1:-1, 1:-1], dp_y[1:-1, 1:-1] = self._compute_gradient(pf)
 
-        self.d = self._compute_d()
-        df = self._interpolate_faces(self.d)
+        d = self._compute_d()
+        df = self._interpolate_faces(d)
 
         sn, rc = self.sn, self.rc
         p = self.p
 
         den = sn[:, :, :, 0]*rc[:, :, :, 0] + sn[:, :, :, 1]*rc[:, :, :, 1]
         p_curr = p[1:-1, 1:-1]
+
+        hu = u + d*dp_x
+        hv = v + d*dp_y
+
+        uf, vf = self._interpolate_faces(hu), self._interpolate_faces(hv)
 
         uf[:, :, 0] = uf[:, :, 0] - df[:, :, 0]*(p[2:, 1:-1] - p_curr)*sn[:, :, 0, 0]/den[:, :, 0]
         uf[:, :, 1] = uf[:, :, 1] - df[:, :, 1]*(p[1:-1, 2:] - p_curr)*sn[:, :, 1, 0]/den[:, :, 1]
@@ -135,44 +140,38 @@ class Simple(Solver):
         return uf, vf, df
 
     def _correct(self, df):
-        self.p[:, :] += self.p_corr*self.omega_p_corr
-        self.p_corr_f = self._interpolate_faces(self.p_corr)
-        self.dp_corr_x[1:-1, 1:-1], self.dp_corr_y[1:-1, 1:-1] = self._compute_gradient(self.p_corr_f)
+        u = self.u[1:-1, 1:-1]
+        v = self.v[1:-1, 1:-1]
+        p = self.p
+        p_corr = self.p_corr
+        d = self.d[1:-1, 1:-1]
+        uf, vf = self.uf, self.vf
 
-        self.u[1:-1, 1:-1] -= self.dp_corr_x[1:-1, 1:-1]*self.d[1:-1, 1:-1]
-        self.v[1:-1, 1:-1] -= self.dp_corr_y[1:-1, 1:-1]*self.d[1:-1, 1:-1]
+        # Correct cell velocities
+        p_corr_f = self._interpolate_faces(self.p_corr)
+        dp_corr_x, dp_corr_y = self._compute_gradient(p_corr_f)
 
-        # Finally must correct the mass fluxes
+        if False:
+            u[:, :] -= dp_corr_x*d
+            v[:, :] -= dp_corr_y*d
 
-if __name__ == '__main__':
-    from grid.finite_volume import FvEquidistantGrid, FvRectilinearGrid
-    from grid.viewers import display_fv_solution, plot_line
-    import numpy as np
+        # Correct pressure
+        if True:
+            p[:, :] += self.p_corr*self.omega_p_corr
 
-    bcs = {
-        'type': ['outlet', 'wall', 'inlet', 'wall'],
-        'value': [0., 0., 1., 0.],
-    }
+        # Finally must correct the face values
+        sn, rc = self.sn, self.rc
+        den = sn[:, :, :, 0]*rc[:, :, :, 0] + sn[:, :, :, 1]*rc[:, :, :, 1]
+        p_curr = self.p_corr[1:-1, 1:-1]
 
-    input = {
-        'bcs': bcs,
-        'rho': 1.2,
-        'mu': 1e-2,
-        'omega_momentum': 0.2,
-        'omega_p_corr': 0.2,
-        'advection_scheme': 'upwind',
-    }
+        if False:
 
-    g = FvRectilinearGrid((80, 40), (2, 1))
-    simple = Simple(g, **input)
+            uf[:, :, 0] -= uf[:, :, 0] - df[:, :, 0]*(p_corr[2:, 1:-1] - p_curr)*sn[:, :, 0, 0]/den[:, :, 0]
+            uf[:, :, 1] -= uf[:, :, 1] - df[:, :, 1]*(p_corr[1:-1, 2:] - p_curr)*sn[:, :, 1, 0]/den[:, :, 1]
+            uf[:, :, 2] -= uf[:, :, 2] - df[:, :, 2]*(p_curr - p_corr[:-2, 1:-1])*sn[:, :, 2, 0]/-den[:, :, 2]
+            uf[:, :, 3] -= uf[:, :, 3] - df[:, :, 3]*(p_curr - p_corr[1:-1, :-2])*sn[:, :, 3, 0]/-den[:, :, 3]
 
-    for i in xrange(400):
-        simple.solve()
-
-    u, v = g.get_cell_fields('u', 'v')
-    vel, = g.add_cell_fields('vel')
-
-    vel[:, :] = np.sqrt(u*u + v*v)
-    print g.get_cell_fields('dp_x')
-    display_fv_solution(g, 'u', show=True, show_grid=True, mark_cell_centers=False)
-    plot_line(g, 'u', 79, axis=1, show=True)
+            vf[:, :, 0] -= vf[:, :, 0] - df[:, :, 0]*(p_corr[2:, 1:-1] - p_curr)*sn[:, :, 0, 1]/den[:, :, 0]
+            vf[:, :, 1] -= vf[:, :, 1] - df[:, :, 1]*(p_corr[1:-1, 2:] - p_curr)*sn[:, :, 1, 1]/den[:, :, 1]
+            vf[:, :, 2] -= vf[:, :, 2] - df[:, :, 2]*(p_curr - p_corr[:-2, 1:-1])*sn[:, :, 2, 1]/-den[:, :, 2]
+            vf[:, :, 3] -= vf[:, :, 3] - df[:, :, 3]*(p_curr - p_corr[1:-1, :-2])*sn[:, :, 3, 1]/-den[:, :, 3]

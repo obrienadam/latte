@@ -127,7 +127,7 @@ class FvEquation(object):
         self.b_core = self.b[1:-1, 1:-1]
         self.b_boundary = self.b[-1, :], self.b[:, -1], self.b[0, :], self.b[:, 0]
 
-    def solve(self):
+    def _apply_bcs(self):
         # Apply bcs
         bc_types = self.bcs['type']
         bc_vals = self.bcs['value']
@@ -143,6 +143,9 @@ class FvEquation(object):
 
             bc_source[:] = bc_value
 
+    def solve(self):
+        self._apply_bcs()
+
         num_i, num_j = self.var.shape
         num = num_i*num_j
 
@@ -156,6 +159,25 @@ class FvEquation(object):
         rhs = self.b.flatten(order='F')
 
         self.var[:, :] = spla.spsolve(spmat, rhs).reshape(self.var.shape, order='F')
+
+        return self.var
+
+    def iterative_solve(self, **kwargs):
+        self._apply_bcs()
+
+        num_i, num_j = self.var.shape
+        num = num_i*num_j
+
+        diags = self.a[:, :, 0].flatten(order='F')[:-1], \
+                self.a[:, :, 1].flatten(order='F')[0:num - num_i], \
+                self.a[:, :, 2].flatten(order='F')[1:], \
+                self.a[:, :, 3].flatten(order='F')[num_i:], \
+                self.a[:, :, 4].flatten(order='F')
+
+        spmat = sp.diags(diags, [1, num_i, -1, -num_i, 0], format='csr')
+        rhs = self.b.flatten(order='F')
+
+        self.var[:, :] = spla.bicgstab(spmat, rhs, **kwargs)[0].reshape(self.var.shape, order='F')
 
         return self.var
 
