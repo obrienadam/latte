@@ -1,5 +1,6 @@
 from solver import Solver
 from equation.fv_equation import FvEquation, DiffusionTerm, AdvectionTerm, Source
+import numpy as np
 
 class Simple(Solver):
     def __init__(self, grid, **kwargs):
@@ -30,6 +31,10 @@ class Simple(Solver):
         self._compute_interpolation_coeffs(**kwargs)
 
     def solve(self):
+        self._solve_momentum()
+        self._solve_p_corr()
+
+    def _solve_momentum(self):
         u_source = Source(self.grid.core_shape)
         v_source = Source(self.grid.core_shape)
 
@@ -48,6 +53,7 @@ class Simple(Solver):
         self.u_eqn.iterative_solve(maxiter=20)
         self.v_eqn.iterative_solve(maxiter=20)
 
+    def _solve_p_corr(self):
         self.uf[:, :], self.vf[:, :], df = self._rhie_chow_interpolate_faces(self.u, self.v, self.p)
 
         mass_source = Source(self.grid.core_shape)
@@ -151,27 +157,11 @@ class Simple(Solver):
         p_corr_f = self._interpolate_faces(self.p_corr)
         dp_corr_x, dp_corr_y = self._compute_gradient(p_corr_f)
 
-        if False:
-            u[:, :] -= dp_corr_x*d
-            v[:, :] -= dp_corr_y*d
+        u[:, :] -= dp_corr_x*d
+        v[:, :] -= dp_corr_y*d
 
         # Correct pressure
-        if True:
-            p[:, :] += self.p_corr*self.omega_p_corr
+        p[:, :] += self.p_corr*self.omega_p_corr
 
-        # Finally must correct the face values
-        sn, rc = self.sn, self.rc
-        den = sn[:, :, :, 0]*rc[:, :, :, 0] + sn[:, :, :, 1]*rc[:, :, :, 1]
-        p_curr = self.p_corr[1:-1, 1:-1]
-
-        if False:
-
-            uf[:, :, 0] -= uf[:, :, 0] - df[:, :, 0]*(p_corr[2:, 1:-1] - p_curr)*sn[:, :, 0, 0]/den[:, :, 0]
-            uf[:, :, 1] -= uf[:, :, 1] - df[:, :, 1]*(p_corr[1:-1, 2:] - p_curr)*sn[:, :, 1, 0]/den[:, :, 1]
-            uf[:, :, 2] -= uf[:, :, 2] - df[:, :, 2]*(p_curr - p_corr[:-2, 1:-1])*sn[:, :, 2, 0]/-den[:, :, 2]
-            uf[:, :, 3] -= uf[:, :, 3] - df[:, :, 3]*(p_curr - p_corr[1:-1, :-2])*sn[:, :, 3, 0]/-den[:, :, 3]
-
-            vf[:, :, 0] -= vf[:, :, 0] - df[:, :, 0]*(p_corr[2:, 1:-1] - p_curr)*sn[:, :, 0, 1]/den[:, :, 0]
-            vf[:, :, 1] -= vf[:, :, 1] - df[:, :, 1]*(p_corr[1:-1, 2:] - p_curr)*sn[:, :, 1, 1]/den[:, :, 1]
-            vf[:, :, 2] -= vf[:, :, 2] - df[:, :, 2]*(p_curr - p_corr[:-2, 1:-1])*sn[:, :, 2, 1]/-den[:, :, 2]
-            vf[:, :, 3] -= vf[:, :, 3] - df[:, :, 3]*(p_curr - p_corr[1:-1, :-2])*sn[:, :, 3, 1]/-den[:, :, 3]
+        # Re-evaluate faces
+        self.uf, self.vf, df = self._rhie_chow_interpolate_faces(self.u, self.v, self.p)

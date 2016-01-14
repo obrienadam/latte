@@ -77,3 +77,27 @@ def plot_line(grid, field_name, coord, **kwargs):
     plt.savefig(f)
 
     return f
+
+def quiver(grid, u_field_name, v_field_name, **kwargs):
+    fig = plt.figure()
+    plt.axes().set_aspect('equal')
+
+    u, v = grid.get_cell_fields(u_field_name, v_field_name)
+    cell_nodes = grid.cell_nodes
+
+    plt.quiver(cell_nodes[:, :, 0], cell_nodes[:, :, 1], u, v)
+
+    if kwargs.get('show_grid', False):
+        plt.plot(cell_nodes[:, :, 0], cell_nodes[:, :, 1], '-', color='black')
+        plt.plot(np.transpose(cell_nodes[:, :, 0]), np.transpose(cell_nodes[:, :, 1]), '-', color='black')
+
+    if kwargs.get('mark_cell_centers', False):
+        plt.plot(cell_nodes[:, :, 0], cell_nodes[:, :, 1], 'o', color='black')
+
+    if kwargs.get('show', False):
+        plt.show()
+
+    f = BytesIO()
+    plt.savefig(f)
+
+    return f
