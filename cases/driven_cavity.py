@@ -9,13 +9,13 @@ input = {
     'bcs': bcs,
     'rho': 1.4,
     'mu': 8.94e-4,
-    'omega_momentum': 0.5,
+    'omega_momentum': 0.7,
     'omega_p_corr': 0.5,
     'advection_scheme': 'upwind',
-    'maxiters': 200,
+    'maxiters': 400,
 }
 
-grid = FvEquidistantGrid(60, 1.)
+grid = FvEquidistantGrid(120, 1.)
 
 if __name__ == '__main__':
     import solvers.piso as ps

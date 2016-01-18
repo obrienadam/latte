@@ -12,10 +12,11 @@ input = {
     'omega_momentum': 0.7,
     'omega_p_corr': 0.3,
     'advection_scheme': 'upwind',
-    'maxiters': 100,
+    'maxiters': 200,
+    'n_p_corrs': 3,
 }
 
-grid = FvRectilinearGrid((120, 40), (3, 1))
+grid = FvRectilinearGrid((180, 60), (3, 1))
 
 if __name__ == '__main__':
     from solvers.piso import Piso
@@ -35,4 +36,4 @@ if __name__ == '__main__':
     u, v = grid.get_cell_fields('u', 'v')
     vel[:, :] = np.sqrt(u**2 + v**2)
 
-    viewers.display_fv_solution(grid, 'vel', show=True)
+    viewers.display_fv_solution(grid, 'vel', show=True, show_grid=True)
